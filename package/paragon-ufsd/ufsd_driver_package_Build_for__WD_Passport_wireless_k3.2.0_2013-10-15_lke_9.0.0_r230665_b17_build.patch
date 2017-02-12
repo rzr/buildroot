@@ -1,0 +1,12 @@
+diff -Nur ufsd_driver_package_Build_for__WD_Passport_wireless_k3.2.0_2013-10-15_lke_9.0.0_r230665_b17/configure ufsd_driver_package_Build_for__WD_Passport_wireless_k3.2.0_2013-10-15_lke_9.0.0_r230665_b17_mod/configure
+--- ufsd_driver_package_Build_for__WD_Passport_wireless_k3.2.0_2013-10-15_lke_9.0.0_r230665_b17/configure	2014-06-24 15:58:21.000000000 +0800
++++ ufsd_driver_package_Build_for__WD_Passport_wireless_k3.2.0_2013-10-15_lke_9.0.0_r230665_b17_mod/configure	2014-07-10 11:55:41.937457456 +0800
+@@ -4152,7 +4152,7 @@
+ 		if test -n "$STRIP"
+ 		then
+ 			if test "$cross_compiling" = yes; then
+-				STRIP=${host_alias}-strip
++				STRIP=${host_alias}strip
+ 			fi
+ 		STRIP_RL="$STRIP -g --strip-unneeded $PACKAGE_NAME.$MODULE_EXT"
+ 

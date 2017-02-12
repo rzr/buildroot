@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PARAGON_UFSD
+	bool "Paragon Kernel Module"
+    depends on BR2_LINUX_KERNEL
+	select BR2_PACKAGE_NCURSES
+	help
+      

@@ -1,0 +1,22 @@
+Switch to Getopt::Std since getopts.pl was deprecated.
+
+Status: Not submitted yet.
+
+Signed-off-by: Gustavo Zacarias <gustavo@zacarias.com.ar>
+
+diff -Nura heimdal-1.5.3/cf/roken-h-process.pl heimdal-1.5.3.roken/cf/roken-h-process.pl
+--- heimdal-1.5.3/cf/roken-h-process.pl	2013-12-18 11:32:38.157625167 -0300
++++ heimdal-1.5.3.roken/cf/roken-h-process.pl	2013-12-18 11:46:35.579792204 -0300
+@@ -1,10 +1,10 @@
+ #!/usr/bin/perl
+ 
+-require 'getopts.pl';
++use Getopt::Std;
+ 
+ my $debug = 0;
+ 
+-Getopts('dc:p:o:') || die "foo";
++getopts('dc:p:o:') || die "foo";
+ 
+ if ($opt_d) {
+     $debug = 1;

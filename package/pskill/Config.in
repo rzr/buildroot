@@ -1,0 +1,4 @@
+config BR2_PACKAGE_PSKILL
+	bool "pskill"
+	help
+      kill ps ax pid.

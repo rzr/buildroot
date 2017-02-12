@@ -1,0 +1,18 @@
+diff -Nur busybox-1.21.0/coreutils/df.c busybox-1.21.0-df/coreutils/df.c
+--- busybox-1.21.0/coreutils/df.c	2013-01-16 02:12:53.000000000 +0800
++++ busybox-1.21.0-df/coreutils/df.c	2013-10-07 17:26:54.493472614 +0800
+@@ -116,10 +116,10 @@
+ 	if (getenv("POSIXLY_CORRECT")) /* TODO - a new libbb function? */
+ 		df_disp_hr = 512;
+ 
+-	if (opt & OPT_HUMAN) {
+-		df_disp_hr = 0;
+-		disp_units_hdr = "     Size";
+-	}
++//	if (opt & OPT_HUMAN) {
++//		df_disp_hr = 0;
++//		disp_units_hdr = "     Size";
++//	}
+ 	if (opt & OPT_INODE)
+ 		disp_units_hdr = "   Inodes";
+ 

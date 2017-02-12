@@ -1,0 +1,19 @@
+roken-h-process.pl can't handle deeply nested #if's
+So break out the strerror_r check.
+
+Status: Hack.
+
+Signed-off-by: Gustavo Zacarias <gustavo@zacarias.com.ar>
+
+diff -Nura heimdal-1.5.3.roken/lib/roken/roken.h.in heimdal-1.5.3.roken2/lib/roken/roken.h.in
+--- heimdal-1.5.3.roken/lib/roken/roken.h.in	2013-12-18 11:44:33.992011903 -0300
++++ heimdal-1.5.3.roken2/lib/roken/roken.h.in	2013-12-18 14:07:35.780270872 -0300
+@@ -551,7 +551,7 @@
+ ROKEN_LIB_FUNCTION char * ROKEN_LIB_CALL strerror(int);
+ #endif
+ 
+-#if (!defined(HAVE_STRERROR_R) && !defined(strerror_r)) || (!defined(STRERROR_R_PROTO_COMPATIBLE) && defined(HAVE_STRERROR_R))
++#if !defined(strerror_r)
+ int ROKEN_LIB_FUNCTION rk_strerror_r(int, char *, size_t);
+ #else
+ #define rk_strerror_r strerror_r

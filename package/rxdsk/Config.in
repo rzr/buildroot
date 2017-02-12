@@ -1,0 +1,5 @@
+config BR2_PACKAGE_RXDSK
+	bool "rxdsk"
+    depends on BR2_LINUX_KERNEL
+	help
+        An open source enhanced Linux RAM disk module 

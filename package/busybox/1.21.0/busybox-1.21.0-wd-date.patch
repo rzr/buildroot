@@ -1,0 +1,22 @@
+diff -Nur busybox-1.21.0/coreutils/date.c busybox-1.21.0-mod/coreutils/date.c
+--- busybox-1.21.0/coreutils/date.c	2014-08-04 00:02:41.025983395 +0800
++++ busybox-1.21.0-mod/coreutils/date.c	2014-08-04 00:03:00.045983252 +0800
+@@ -293,9 +293,15 @@
+ 		maybe_set_utc(opt);
+ 
+ 		/* if setting time, set it */
+-		if ((opt & OPT_SET) && stime(&ts.tv_sec) < 0) {
+-			bb_perror_msg("can't set date");
+-		}
++		//if ((opt & OPT_SET) && stime(&ts.tv_sec) < 0) {
++		//	bb_perror_msg("can't set date");
++		//}
++        if (opt & OPT_SET) {
++            if  (stime(&ts.tv_sec) < 0)
++                bb_perror_msg("can't set date");
++            else
++                system("hwclock -w -u");
++        }
+ 	}
+ 
+ 	/* Display output */

@@ -1,0 +1,38 @@
+--- etc/init.d/S40network	2014-07-15 12:06:11.878416407 +0800
++++ etc/init.d/S40network	2014-07-15 11:33:28.000000000 +0800
+@@ -3,17 +3,33 @@
+ # Start the network....
+ #
+ 
++NetworkIfaceCheck(){
++	if [ ! -f "/etc/network/interfaces" ]; then
++		cp -a /etc/network/interfaces_bak /etc/network/interfaces	
++	else
++		DHCP=`cat /etc/network/interfaces | grep dhcp`
++		Static=`cat /etc/network/interfaces | grep static`
++		if [ "$DHCP" == "" ] && [ "$Static" == "" ]; then
++			cp -a /etc/network/interfaces_bak /etc/network/interfaces
++		fi
++	fi
++}
++
+ case "$1" in
+   start)
+  	echo "Starting network..."
+-	/sbin/ifup -a
++  	NetworkIfaceCheck
++	#/sbin/ifup -a
++	/sbin/ifup lo
+ 	;;
+   stop)
+ 	echo -n "Stopping network..."
+-	/sbin/ifdown -a
++	#/sbin/ifdown -a
++	/sbin/ifdown lo
+ 	;;
+   restart|reload)
+ 	"$0" stop
++  	NetworkIfaceCheck
+ 	"$0" start
+ 	;;
+   *)

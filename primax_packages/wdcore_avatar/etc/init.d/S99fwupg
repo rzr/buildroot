@@ -1,0 +1,131 @@
+#!/bin/sh
+#
+# Start fwupf....
+#
+RETVAL=0
+RETVAL1=0
+ubifs=`df | grep "ubi0:rootfs " | wc -l`
+
+#check factory restore
+#if [ -f "/etc/FacRestore" ] ; then
+#    facrestore=`cat /etc/FacRestore`
+#    if [ ${facrestore} == "compeleted" ] ; then
+#        echo "Factory Restore Defaulted"
+#        /usr/local/sbin/sendAlert.sh 2004
+#        rm /etc/FacRestore
+#    fi
+#fi
+
+primax_fwupg()
+{
+
+	if [ $ubifs -eq 1 ]; then
+	  for volume_path in /media/*; do
+	    echo "Searching $volume_path"
+	    if [ -d "$volume_path/update"  ]; then
+	      echo "Found update folder in $volume_path"
+	      if [ -f "$volume_path/update/UpdateDone" ]; then
+	        echo "Already Updated"
+	        return
+	      fi
+	      
+	      update_images=`find $volume_path/update -name "MyPassportWireless*"`
+	      for update_image in "$update_images"; do
+	        if [ "${update_image}" == "" ]; then
+	          break
+	        fi
+	        rm -f /FWupgfromSDCard /FWupgfromHDD
+	        echo "Update from \"$update_image\""
+	        if [ ${volume_path} == "/media/AFPSDcard" ] || [ ${volume_path} == "/media/SDcard" ]; then
+	          echo "" > /FWupgfromSDCard
+	        else
+	          echo "" > /FWupgfromHDD
+	        fi
+	        /usr/local/sbin/updateFirmwareFromFile.sh "$update_image"
+	      done
+	      
+	      update_images=`find $volume_path/update -name "My Passport Wireless*"`
+	      for update_image in "$update_images"; do
+	        if [ "${update_image}" == "" ]; then
+	          break
+	        fi
+	        echo "Update from \"$update_image\""
+	        if [ ${volume_path} == "/media/AFPSDcard" ] || [ ${volume_path} == "/media/SDcard" ]; then
+	          echo "" > /FWupgfromSDCard
+	        else
+	          echo "" > /FWupgfromHDD
+	        fi
+	        /usr/local/sbin/updateFirmwareFromFile.sh "$update_image"
+	      done
+	      
+	      update_images=`find $volume_path/update -name "My_Cloud_Mobile*"`
+	      for update_image in $update_images; do
+	        echo "Update from $update_image"
+	        kexec -l $update_image --atags
+	        RETVAL=$?
+	        if [ $RETVAL -eq 0 ]; then
+	          echo "" > $volume_path/update/UpdateDone
+	          kexec -e
+	        else
+	          /usr/local/sbin/updateFirmwareFromFile.sh $update_image
+	        fi
+	      done
+	      
+	    fi
+	  done
+	fi
+	if [ -f "/media/sda1/update/MLO" ]; then
+		flash_erase /dev/mtd0 0 0
+		flash_erase /dev/mtd1 0 0
+		flash_erase /dev/mtd2 0 0
+		flash_erase /dev/mtd3 0 0
+		sleep 1
+	fi
+	if [ -f "/media/sda1/update/u-boot.img" ]; then
+		flash_erase /dev/mtd4 0 0
+		sleep 1
+	fi	
+	if [ -f "/media/sda1/update/uImage" ]; then
+		flash_erase /dev/mtd6 0 0
+		sleep 1
+	fi
+	if [ -f "/media/sda1/update/MLO" ]; then
+		nandwrite -p /dev/mtd0 /media/sda1/update/MLO
+		nandwrite -p /dev/mtd1 /media/sda1/update/MLO
+		nandwrite -p /dev/mtd2 /media/sda1/update/MLO
+		nandwrite -p /dev/mtd3 /media/sda1/update/MLO
+		sleep 1
+	fi
+	if [ -f "/media/sda1/update/u-boot.img" ]; then
+		nandwrite -p /dev/mtd4 /media/sda1/update/u-boot.img
+		sleep 1
+	fi
+	if [ -f "/media/sda1/update/uImage" ]; then
+		nandwrite -p /dev/mtd6 /media/sda1/update/uImage
+		sleep 1
+	fi
+	if [ -f "/media/sda1/update/rootfs.ubi" ]; then
+		flash_erase /dev/mtd7 0 0
+		sleep 1
+	fi
+	if [ -f "/media/sda1/update/rootfs.ubi" ]; then
+		ubiformat /dev/mtd7 -f /media/sda1/update/rootfs.ubi -s 2048 -O 2048 -y
+		reboot
+	fi
+}
+
+case "$1" in
+  start)
+	echo "Starting fwupg..."
+	primax_fwupg
+	;;
+  stop)
+	;;
+  restart|reload)
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

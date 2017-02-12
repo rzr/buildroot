@@ -504,7 +504,8 @@ endif
 		echo "VERSION_ID=$(BR2_VERSION)"; \
 		echo "PRETTY_NAME=\"Buildroot $(BR2_VERSION)\"" \
 	) >  $(TARGET_DIR)/etc/os-release
-
+	date +%s > $(TARGET_DIR)/etc/version.buildtime
+	date +%s > $(TARGET_DIR)/etc/version.update
 	@$(foreach d, $(call qstrip,$(BR2_ROOTFS_OVERLAY)), \
 		$(call MESSAGE,"Copying overlay $(d)"); \
 		rsync -a \

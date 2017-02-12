@@ -1,0 +1,70 @@
+diff -Nur samba-3.6.14/source3/modules/vfs_default.c samba-3.6.14-mod/source3/modules/vfs_default.c
+--- samba-3.6.14/source3/modules/vfs_default.c	2013-04-26 18:05:38.000000000 +0800
++++ samba-3.6.14-mod/source3/modules/vfs_default.c	2014-08-04 15:01:54.388754492 +0800
+@@ -942,7 +942,66 @@
+ 	result = sys_ftruncate(fsp->fh->fd, len);
+ 	if (result == 0)
+ 		goto done;
++	system("echo \"sys_ftruncate failed\" >> /tmp/sambalog");
++#if 1 /* patch - skip ftruncate to save time on growing files on FAT */
++	{ 
++		uint64_t  big_len = len;
++		DEBUG(3,("vfswrap_ftruncate target length: %llu bytes.\n", big_len));
++		
++		if (big_len > (uint64_t)0xffffffffL) {
++			system("echo \"vfat larger then 4GB\" >> /tmp/sambalog");
++			DEBUG(3,("vfswrap_ftruncate file is longer than %llu.\n", (uint64_t)0xffffffffL));
++			errno = ENOSPC;
++			//result = -1;
++			END_PROFILE(syscall_ftruncate);
++			return result;
++		}
++		
++		/* get status */
++		status = vfs_stat_fsp(fsp);
++		if (!NT_STATUS_IS_OK(status)) {
++			goto done;
++		}
++		pst = &fsp->fsp_name->st;
++		
++		DEBUG(3,("vfswrap_ftruncate original file size: %llu bytes.\n", (uint64_t)pst->st_ex_size));
++		
++		if (big_len == (uint64_t)pst->st_ex_size) {
++			result = 0;
++			goto done;
++		}
+ 
++		/* if we need more space */
++		if (big_len > (uint64_t)pst->st_ex_size) {
++			uint64_t space_avail;
++			uint64_t bsize,dfree,dsize;
++			big_len -= pst->st_ex_size;
++			big_len /= 1024; /* big_len is now number of 1k blocks needed. */
++			
++			DEBUG(3,("Checking space for %s\n",fsp->fsp_name->base_name));
++			
++			space_avail = SMB_VFS_DISK_FREE(fsp->conn ,fsp->fsp_name->base_name,False,&bsize,&dfree,&dsize);
++			DEBUG(3,("SMB_VFS_DISK_FREE space_avail: %llu, bsize: %llu, dfree: %llu, dsize: %llu\n", space_avail, bsize,dfree,dsize));
++
++			if (space_avail == (uint64_t)-1) {
++				result = -1;
++				goto done;
++			}
++			
++			/* no space left on device */
++			if (big_len > space_avail) {
++				system("echo \"vfat No Free Space\" >> /tmp/sambalog");
++				errno = ENOSPC;
++				result = -1;
++				goto done;
++			}
++
++			/* do nothing to be fast! */
++			result = 0;
++			goto done;
++		}
++	} // block
++#endif
+ 	/* According to W. R. Stevens advanced UNIX prog. Pure 4.3 BSD cannot
+ 	   extend a file with ftruncate. Provide alternate implementation
+ 	   for this */

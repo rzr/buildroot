@@ -1,0 +1,17 @@
+A build is enough for this test.
+
+Signed-off-by: Gustavo Zacarias <gustavo@zacarias.com.ar>
+
+diff -Nura samba-4.1.3.orig/source3/wscript samba-4.1.3/source3/wscript
+--- samba-4.1.3.orig/source3/wscript	2013-12-12 16:45:46.829961465 -0300
++++ samba-4.1.3/source3/wscript	2013-12-18 10:56:59.094961962 -0300
+@@ -457,8 +457,7 @@
+     conf.CHECK_CODE('struct statfs fsd; fsid_t fsid = fsd.f_fsid; return statfs(".", &fsd);',
+                     'HAVE_STATFS_F_FSID',
+                     msg="vfs_fileid: checking for statfs() and struct statfs.f_fsid",
+-                    headers='sys/types.h sys/statfs.h',
+-                    execute=True)
++                    headers='sys/types.h sys/statfs.h')
+ 
+     if conf.CONFIG_SET('HAVE_FALLOCATE'):
+         conf.CHECK_CODE('''

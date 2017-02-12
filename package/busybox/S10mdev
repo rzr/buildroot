@@ -7,6 +7,9 @@ case "$1" in
   start)
 	echo "Starting mdev..."
 	/sbin/mdev -s
+	if [ -f "/bin/ghelper" ]; then
+	  /bin/ghelper&
+	fi
 	;;
   stop)
 	;;

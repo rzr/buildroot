@@ -1,0 +1,71 @@
+#!/bin/sh
+#
+# $Id: dhcp3-server.init.d,v 1.4 2003/07/13 19:12:41 mdz Exp $
+#
+
+
+
+# On what interfaces should the DHCP server (dhcpd) serve DHCP requests?
+#       Separate multiple interfaces with spaces, e.g. "eth0 eth1".
+source /etc/nas/config/wifinetwork-param.conf
+INTERFACES="wlan1"
+DNSMASQ_CONF_PATH="/etc/dnsmasq.conf"
+DHCPD_CONF="/etc/dhcpd.conf"
+
+GENERATE_DNSMASQ_CONFIG()
+{
+    echo "resolv-file=/etc/resolv.conf"                             > $DNSMASQ_CONF_PATH    
+    #if [ ! -f "/etc/.device_configured" ]; then
+    #    echo "address=/#/$AP_IP"                                  >> $DNSMASQ_CONF_PATH
+    #fi
+    echo "interface=$INTERFACES"                                    >> $DNSMASQ_CONF_PATH
+    #echo "listen-address=192.168.60.1"                           >> $DNSMASQ_CONF_PATH
+    #echo "listen-address=127.0.0.1"                               >> $DNSMASQ_CONF_PATH	
+    #echo "bind-interfaces"                               >> $DNSMASQ_CONF_PATH
+}
+
+# It is not safe to start if we don't have a default configuration...
+#echo "/etc/init.d/dhcp-server not yet configured! - Aborting..."
+#exit 1;
+
+source /etc/nas/config/wifinetwork-param.conf
+
+test -f /usr/sbin/dhcpd || exit 0
+
+
+case "$1" in
+	start)
+		if [ "$AP_DHCPD_ENABLE" == "true" ]; then 
+			echo -n "Starting DHCP server: "
+			sed -i '17,17c \'default-lease-time\ 86400\;   $DHCPD_CONF
+			sed -i '18,18c \'max-lease-time\ 604800\;   $DHCPD_CONF
+			
+			test -d /var/lib/dhcp/ || mkdir -p /var/lib/dhcp/
+			test -f /var/lib/dhcp/dhcpd.leases || touch /var/lib/dhcp/dhcpd.leases	
+			start-stop-daemon -S -x /usr/sbin/dhcpd -- -q $INTERFACES
+			GENERATE_DNSMASQ_CONFIG
+			start-stop-daemon -S -x /usr/sbin/dnsmasq -- -C /etc/dnsmasq.conf
+			echo "."
+		fi
+		/bin/echo "24;0" > /tmp/MCU_Cmd  & > /dev/null 2>&1
+		;;
+	stop)
+		echo -n "Stopping DHCP server: dhcpd3"
+		start-stop-daemon -K -x /usr/sbin/dhcpd
+        start-stop-daemon -K -x /usr/sbin/dnsmasq
+		echo "."
+		;;
+	restart | force-reload)
+		$0 stop
+		sleep 2
+		$0 start
+		if [ "$?" != "0" ]; then
+			exit 1
+		fi
+		;;
+	*)
+		echo "Usage: /etc/init.d/dhcp-server {start|stop|restart|force-reload}"
+		exit 1 
+esac
+
+exit 0

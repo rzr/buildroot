@@ -1,9 +1,35 @@
 menu "Extensions"
 
-config BR2_PACKAGE_PHP_EXT_CALENDAR
-	bool "Calendar"
+config BR2_PACKAGE_PHP_EXT_APC
+	bool "APC"
 	help
-	  Calendar and event support
+	  Alternative PHP Cache
+
+config BR2_PACKAGE_PHP_EXT_FPM
+	bool "FPM"
+	help
+	  FastCGI Process Manager
+
+config BR2_PACKAGE_PHP_EXT_MCRYPT
+	bool "MCRYPT"
+	help
+	  This is an interface to the mcrypt library
+
+config BR2_PACKAGE_PHP_EXT_MHASH
+	bool "MHASH"
+	help
+	  These functions are intended to work with mhash
+
+config BR2_PACKAGE_PHP_EXT_MBSTRING
+	bool "MBSTRING"
+	help
+	  Multibyte String Functions
+
+config BR2_PACKAGE_PHP_EXT_PEAR
+	bool "PEAR"
+	help
+	  PHP Extension and Application Repository
+
 
 config BR2_PACKAGE_PHP_EXT_FILEINFO
 	bool "Fileinfo"

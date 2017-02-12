@@ -275,6 +275,7 @@ source "package/picocom/Config.in"
 source "package/read-edid/Config.in"
 source "package/rng-tools/Config.in"
 source "package/rpi-userland/Config.in"
+source "package/rxdsk/Config.in"
 source "package/sane-backends/Config.in"
 source "package/sdparm/Config.in"
 source "package/setserial/Config.in"
@@ -518,6 +519,7 @@ source "package/czmq/Config.in"
 source "package/cppzmq/Config.in"
 source "package/filemq/Config.in"
 source "package/glib-networking/Config.in"
+source "package/heimdal/Config.in"
 source "package/libcgi/Config.in"
 source "package/libcgicc/Config.in"
 source "package/libcurl/Config.in"
@@ -712,17 +714,21 @@ source "package/lighttpd/Config.in"
 source "package/linknx/Config.in"
 source "package/links/Config.in"
 source "package/linphone/Config.in"
+source "package/lld2d/Config.in"
 source "package/lrzsz/Config.in"
 source "package/macchanger/Config.in"
 source "package/mii-diag/Config.in"
+source "package/minidlna/Config.in"
 source "package/mongoose/Config.in"
 source "package/mongrel2/Config.in"
 source "package/mrouted/Config.in"
 source "package/msmtp/Config.in"
 source "package/mutt/Config.in"
+source "package/multi-role/Config.in"
 source "package/nbd/Config.in"
 source "package/ncftp/Config.in"
 source "package/ndisc6/Config.in"
+source "package/net-tools/Config.in"
 if BR2_PACKAGE_BUSYBOX_SHOW_OTHERS
 source "package/netcat/Config.in"
 source "package/netkitbase/Config.in"
@@ -759,6 +765,7 @@ source "package/rsh-redone/Config.in"
 source "package/rsync/Config.in"
 source "package/rtorrent/Config.in"
 source "package/samba/Config.in"
+source "package/samba4/Config.in"
 source "package/sconeserver/Config.in"
 source "package/ser2net/Config.in"
 source "package/socat/Config.in"
@@ -828,6 +835,9 @@ source "package/lockfile-progs/Config.in"
 source "package/logrotate/Config.in"
 source "package/logsurfer/Config.in"
 source "package/screen/Config.in"
+if BR2_PACKAGE_BUSYBOX_SHOW_OTHERS
+source "package/shadow/Config.in"
+endif
 source "package/sudo/Config.in"
 if BR2_PACKAGE_BUSYBOX_SHOW_OTHERS
 source "package/time/Config.in"
@@ -845,8 +855,11 @@ endif
 source "package/bwm-ng/Config.in"
 source "package/cpuload/Config.in"
 source "package/htop/Config.in"
+source "package/iotop/Config.in"
 source "package/keyutils/Config.in"
 source "package/kmod/Config.in"
+source "package/lsb/Config.in"
+source "package/pskill/Config.in"
 if BR2_PACKAGE_BUSYBOX_SHOW_OTHERS
 source "package/module-init-tools/Config.in"
 endif
@@ -879,6 +892,40 @@ source "package/uemacs/Config.in"
 if BR2_PACKAGE_BUSYBOX_SHOW_OTHERS
 source "package/vim/Config.in"
 endif
+endmenu
+
+menu "Wireless Extra Driver"
+source "package/wilink8/Config.in"
+if BR2_PACKAGE_WILINK8
+source "package/wilink8-utils/Config.in"
+endif
+endmenu
+
+menu "WD packages"
+source "package/wdpackage_basic/Config.in"
+if BR2_PACKAGE_WDPACKAGE_BASIC
+source "package/wdpackage_Dispatcher/Config.in"
+source "package/wdpackage_MediaCrawler/Config.in"
+source "package/wdpackage_Notifier/Config.in"
+source "package/wdpackage_RestAPI/Config.in"
+source "package/wdpackage_WebUI/Config.in"
+source "package/wdpackage_TwonkyServer/Config.in"
+endif
+source "package/paragon-ufsd/Config.in"
+source "package/paragon-tools/Config.in"
+endmenu
+
+menu "Primax packages"
+source "package/pmxpackage_ghelper/Config.in"
+source "package/pmxpackage_mcu_daemon/Config.in"
+source "package/pmxpackage_mptool/Config.in"
+source "package/pmxpackage_monitor/Config.in"
+source "package/pmxpackage_asmupdate/Config.in"
+source "package/pmxpackage_scsiGetCID/Config.in"
+source "package/pmxpackage_hiddenFile/Config.in"
+source "package/pmxpackage_defaultsettings/Config.in"
+source "package/pmxpackage_fwupg/Config.in"
+source "package/pmxpackage_filecache/Config.in"
 endmenu
 
 endmenu

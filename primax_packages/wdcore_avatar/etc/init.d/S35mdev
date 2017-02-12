@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Start mdev....
+#
+
+case "$1" in
+  start)
+	echo "Re-Starting mdev..."
+	/sbin/mdev -s
+	if [ ! -f /etc/standby.conf ]; then
+		echo "standby_enable=disable" > /etc/standby.conf
+		echo "standby_time=0" >> /etc/standby.conf
+		hdparm -S 0 `cat /tmp/HDDDevNode`
+	fi
+	echo 0 > /tmp/temp_state
+	;;
+  stop)
+	;;
+  restart|reload)
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

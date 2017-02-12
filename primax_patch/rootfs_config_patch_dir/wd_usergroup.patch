@@ -1,0 +1,77 @@
+diff -Nur etc/group etc/group
+--- etc/group	2013-09-03 13:21:37.847505815 +0800
++++ etc/group	2013-09-03 17:35:59.572328131 +0800
+@@ -5,7 +5,7 @@
+ adm:x:4:
+ tty:x:5:
+ disk:x:6:
+-wheel:x:10:root
++wheel:x:10:
+ audio:x:29:
+ www-data:x:33:
+ utmp:x:43:
+@@ -18,4 +18,5 @@
+ nobody:x:99:
+ nogroup:x:99:
+ users:x:100:
+-default:x:1000:
++administrators:x:1001:admin
++share:x:1000:admin,nobody
+diff -Nur etc/passwd etc/passwd
+--- etc/passwd	2013-09-03 13:21:42.083510423 +0800
++++ etc/passwd	2013-09-03 17:37:25.560332125 +0800
+@@ -1,4 +1,4 @@
+-root:x:0:0:root:/root:/bin/sh
++root:x:0:0:Linux User,,,:/home/root:/bin/sh
+ daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+ bin:x:2:2:bin:/bin:/bin/sh
+ sys:x:3:3:sys:/dev:/bin/sh
+@@ -13,4 +13,5 @@
+ ftp:x:83:83:ftp:/home/ftp:/bin/sh
+ nobody:x:99:99:nobody:/home:/bin/sh
+ sshd:x:103:99:Operator:/var:/bin/sh
+-default:x:1000:1000:Default non-root user:/home/default:/bin/sh
++admin:x:500:1000:,,,:/shares:/bin/sh
++guest:x:1001:1000:,,,:/usr/share/ftp:/bin/sh
+diff -Nur etc/shadow etc.wd/shadow
+--- etc/shadow	2013-11-08 07:05:31.508269874 +0800
++++ etc.wd/shadow	2013-11-08 07:06:52.796274229 +0800
+@@ -1,7 +1,7 @@
+ root::10933:0:99999:7:::
+ bin:*:10933:0:99999:7:::
+ daemon:*:10933:0:99999:7:::
+-adm:*:10933:0:99999:7:::
++admin::10933:0:99999:7:::
+ lp:*:10933:0:99999:7:::
+ sync:*:10933:0:99999:7:::
+ shutdown:*:10933:0:99999:7:::
+@@ -10,4 +10,4 @@
+ operator:*:10933:0:99999:7:::
+ ftp:*:10933:0:99999:7:::
+ nobody:*:10933:0:99999:7:::
+-default::10933:0:99999:7:::
++guest::10933:0:99999:7:::
+diff -Nur etc/sudoers etc/sudoers
+--- etc/sudoers	2013-09-09 15:06:33.254719090 +0800
++++ etc/sudoers	2013-09-09 15:07:57.434724322 +0800
+@@ -6,7 +6,7 @@
+ ##
+ ## See the sudoers man page for the details on how to write a sudoers file.
+ ##
+-
++Defaults secure_path = /bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
+ ##
+ ## Host alias specification
+ ##
+@@ -69,8 +69,9 @@
+ ##
+ ## User privilege specification
+ ##
+-root ALL=(ALL) ALL
+-
++#root ALL=(ALL) ALL
++www-data ALL=(ALL) NOPASSWD: ALL
++root ALL=(ALL) NOPASSWD: ALL
+ ## Uncomment to allow members of group wheel to execute any command
+ # %wheel ALL=(ALL) ALL
+ 

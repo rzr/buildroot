@@ -1,0 +1,121 @@
+#!/bin/bash
+##################################################
+### Author: Rance Lin                          ###
+### Update: 2013-10-15                         ###
+##################################################
+: << !Command!
+Restart all wifi service, include STA & AP mode.
+Usage:
+    - Edit "/etc/network/config" file.
+    - Excute this shell script, "# wifi-restart".
+
+ToDo:
+    - Add WEP support on STA mode.
+    - Add encryption mothed on AP mode.
+
+!Command!
+
+export $(cat /etc/network/config)
+
+
+
+### Default Setting ###
+DHCPD_CONF_PATH="/etc/dhcpd.conf"
+HOSTAPD_CONF_PATH="/etc/hostapd/hostapd.conf"
+WPA_SUPPLICANT_PATH="/etc/wpa_supplicant.conf"
+
+HOSTPAD_SERVICE="/etc/init.d/S60hostapd"
+DHCP_SERVICE="/etc/init.d/S80dhcp-server"
+MULTI_ROLE_SERVICE="/etc/init.d/S90multi-role"
+
+AP_SUBNET="${AP_IP%.*}.0"
+AP_DHCP_UPPER_BOUND="${AP_IP%.*}.100"
+AP_DHCP_LOWER_BOUND="${AP_IP%.*}.200"
+
+
+
+### Change DHCP Config ###
+CHANGE_DHCP_CONFIG()
+{
+    sed -i '111,$d' $DHCPD_CONF_PATH
+
+    echo "option routers $AP_IP;"                                   >> $DHCPD_CONF_PATH
+    echo "option domain-name-servers $AP_IP;"                       >> $DHCPD_CONF_PATH
+    echo " "                                                        >> $DHCPD_CONF_PATH
+    echo "subnet $AP_SUBNET netmask $AP_MASK {"                     >> $DHCPD_CONF_PATH
+    echo "    pool {"                                               >> $DHCPD_CONF_PATH
+    echo "        max-lease-time 600;"                              >> $DHCPD_CONF_PATH
+    echo "        range $AP_DHCP_UPPER_BOUND $AP_DHCP_LOWER_BOUND;" >> $DHCPD_CONF_PATH
+    echo "        option routers $AP_IP;"                           >> $DHCPD_CONF_PATH
+    echo "        option domain-name-servers $AP_IP, $AP_DNS;"      >> $DHCPD_CONF_PATH
+    echo "        allow unknown-clients;"                           >> $DHCPD_CONF_PATH
+    echo "    }"                                                    >> $DHCPD_CONF_PATH
+    echo "}"                                                        >> $DHCPD_CONF_PATH
+}
+
+
+
+### Change Hostapd Config ###
+CHANGE_HOSTAPD_CONFIG()
+{
+    sed -i '1,1c \'interface=$AP_IFACE   $HOSTAPD_CONF_PATH
+    sed -i '2,2c \'ssid=$AP_SSID_NAME    $HOSTAPD_CONF_PATH
+    sed -i '4,4c \'channel=$AP_CHANNEL   $HOSTAPD_CONF_PATH
+}
+
+
+
+### Change WPA Supplicant Config ###
+CHANGE_WPA_SUPPLICANT_CONFIG()
+{
+    sed -i '5,$d' $WPA_SUPPLICANT_PATH
+
+    case $STA_SECURITY_MODE in 
+        "NONE" )
+            echo "key_mgmt=NONE"            >> $WPA_SUPPLICANT_PATH
+            echo "ssid=\"$STA_SSID_NAME\""  >> $WPA_SUPPLICANT_PATH
+            echo "}"                        >> $WPA_SUPPLICANT_PATH
+            ;;
+        "WPA" )
+            echo "ssid=\"$STA_SSID_NAME\""  >> $WPA_SUPPLICANT_PATH
+            echo "psk=\"$STA_PSK_KEY\""     >> $WPA_SUPPLICANT_PATH
+            echo "}"                        >> $WPA_SUPPLICANT_PATH
+            ;;
+        * )
+            ;;
+    esac
+}
+
+
+
+### Restart Wifi Service ###
+RESTART_WIFI_SERVICE()
+{
+    $HOSTPAD_SERVICE restart
+    $DHCP_SERVICE  restart
+    $MULTI_ROLE_SERVICE restart
+}
+
+
+
+### Finished Message ###
+FINISHED_MESSAGE()
+{
+    echo "Restart Wifi Service Successed."
+}
+
+
+
+##################################################
+##################################################
+##################################################
+### Main Script ###
+CHANGE_DHCP_CONFIG
+
+CHANGE_HOSTAPD_CONFIG
+
+CHANGE_WPA_SUPPLICANT_CONFIG
+
+RESTART_WIFI_SERVICE
+
+FINISHED_MESSAGE

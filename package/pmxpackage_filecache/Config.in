@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PMXPACKAGE_FILECACHE
+	bool "pmxpackage(filecache)"
+	help
+	  The primax package(filecache) filecache  for Avatar device
+

@@ -1,0 +1,196 @@
+#!/bin/sh
+#
+#
+
+RETVAL=0
+
+start() {
+	if [ ! -d "/etc/updateCounts" ]; then
+		mkdir -p /etc/updateCounts
+		echo 1 > /etc/updateCounts/alert
+		echo 1 > /etc/updateCounts/data_volume_write
+		echo 1 > /etc/updateCounts/firmware_update
+		echo 1 > /etc/updateCounts/battery
+		echo 1 > /etc/updateCounts/system_state
+		echo 1 > /etc/updateCounts/wifi_ap
+		echo 1 > /etc/updateCounts/wifi_client_connection
+        echo 1 > /etc/updateCounts/storage_transfer
+	fi
+    if [ ! -f "/etc/updateCounts/storage_transfer" ]; then
+        echo 1 > /etc/updateCounts/storage_transfer
+    fi
+
+	if [ ! -f /tmp/HDSerial ]; then
+		HDSerial=`hdparm -I \`cat /tmp/HDDDevNode\` | sed -n -e 's/.*Serial Number:\(.*\)/\1/p' | sed -e 's/^[ \t]*//' | awk '{gsub("WD-","",$0); print $0}'`
+		echo "$HDSerial" > /tmp/HDSerial
+	else
+		HDSerial=`cat /tmp/HDSerial`
+	fi
+	FStype=`cat /proc/mounts | grep "/media/sdb1 " | cut -d " " -f 3`
+
+	result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"UserShares\" VALUES('Public'"  | wc -l`
+	if [ $result == "1" ]; then
+		/usr/local/sbin/crud_share_db.sh delete Public /etc/samba/smb.conf
+	fi
+
+	result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"Volumes\" VALUES('"  | wc -l`
+	if [ $result == "1" ]; then
+		/usr/local/sbin/volume_mount.sh unmount "$HDSerial"_1
+	fi
+
+	echo -n "Starting volume_mount.sh: "
+	/usr/local/sbin/volume_mount.sh mount "$HDSerial"_1 /media/sdb1 `cat /tmp/MountedDevNode` $FStype
+	result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"Volumes\" VALUES('"  | wc -l`
+	if [ $result == "0" ]; then
+		sleep 1
+		/usr/local/sbin/volume_mount.sh mount "$HDSerial"_1 /media/sdb1 `cat /tmp/MountedDevNode` $FStype
+		result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"Volumes\" VALUES('"  | wc -l`
+		if [  $result == "0" ]; then
+			sleep 1
+			/usr/local/sbin/volume_mount.sh mount "$HDSerial"_1 /media/sdb1 `cat /tmp/MountedDevNode` $FStype
+		fi
+		result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"Volumes\" VALUES('"  | wc -l`
+	fi
+
+	if [ $result == "1" ]; then
+		RETVAL=0
+	else
+		RETVAL=1
+	fi	
+	echo "done"
+
+	echo -n "Starting crud_share_db.sh: "
+	/usr/local/sbin/crud_share_db.sh create Public /etc/samba/smb.conf true
+ 	result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"UserShares\" VALUES('Public'"  | wc -l`
+	if [ $result == "0" ]; then
+		sleep 1
+		/usr/local/sbin/crud_share_db.sh create Public /etc/samba/smb.conf true
+		result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"UserShares\" VALUES('Public'"  | wc -l`
+		if [  $result == "0" ]; then
+			sleep 1
+			/usr/local/sbin/crud_share_db.sh create Public /etc/samba/smb.conf true
+		fi
+        	result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"UserShares\" VALUES('Public'"  | wc -l`
+	fi
+
+	if [ $result == "1" ]; then 
+		RETVAL2=0
+	else
+		RETVAL2=1
+	fi
+	echo "done"
+
+	/usr/local/sbin/middleware_startup.sh
+
+	if [ -f /tmp/HDDDevNode ]; then
+		smartctl -d sat -s on -S on `cat /tmp/HDDDevNode` > /dev/null 2>/dev/null
+	else
+		echo "No HDD presented!"
+	fi
+
+	/bin/monitor &
+	# check firmware upgrade
+	if [ -f "/fwupg"  ]; then
+		#/sbin/mptool set gasgauge
+		fwupg=`cat /fwupg`
+		if [ "${fwupg}" == "success" ]; then
+			/usr/local/sbin/sendAlert.sh 2003
+			if [ -d /media/sdb1_fuse/.wdcache/fwupg_images ]; then
+				rm -Rf /media/sdb1_fuse/.wdcache/fwupg_images
+			else
+				rm -Rf /media/sdb1/.wdcache/fwupg_images
+			fi
+			#source /etc/device_security.conf
+			#if [ "${device_security}" == "true" ]; then
+			#	echo "29;0" > /tmp/MCU_Cmd 2>/dev/null
+			#fi
+			if [ -f /FWupgfromSDCard ]; then
+				rm -f /FWupgfromSDCard
+				echo "" > /media/SDcard/update/UpdateDone
+			fi
+			if [ -f /FWupgfromHDD ]; then
+				rm -f /FWupgfromHDD
+				echo "" > /media/sdb1/update/UpdateDone
+			fi
+            if [ -f /FWupgfromInternet ]; then
+                rm -f /FWupgfromInternet
+                rm -f /media/sdb1/.wdcache/updateFile.deb
+                /usr/local/sbin/clearAlerts.sh 2002
+            fi
+		fi
+		rm /fwupg
+	fi
+    #check factory restore
+    if [ -f "/etc/FacRestore" ] ; then
+        facrestore=`cat /etc/FacRestore`
+        if [ ${facrestore} == "compeleted" ] ; then
+            echo "Factory Restore Defaulted"
+            /usr/local/sbin/sendAlert.sh 2004
+        fi
+        rm /etc/FacRestore
+    fi
+    if [ -f /RestoreFromButton ]; then
+        echo "29;1" > /tmp/MCU_Cmd 2>/dev/null
+        rm -f /RestoreFromButton
+    fi
+	if [ -d /media/sdb1_fuse ]; then
+		/sbin/hiddenFile /media/sdb1_fuse/.wdmc
+		/sbin/hiddenFile /media/sdb1_fuse/.wdcache
+	else
+		/sbin/hiddenFile /media/sdb1/.wdmc
+		/sbin/hiddenFile /media/sdb1/.wdcache
+	fi
+	[ $RETVAL -eq 0 -a $RETVAL2 -eq 0 ] && touch /tmp/RestAPIReady || \
+	   RETVAL=1
+
+	return $RETVAL
+}	
+
+stop() {
+	killall monitor
+	if [ ! -f /tmp/HDSerial ]; then
+		HDSerial=`hdparm -I \`cat /tmp/HDDDevNode\` | sed -n -e 's/.*Serial Number:\(.*\)/\1/p' | sed -e 's/^[ \t]*//' | awk '{gsub("WD-","",$0); print $0}'`
+		echo "$HDSerial" > /tmp/HDSerial
+	else
+		HDSerial=`cat /tmp/HDSerial`
+	fi
+	
+	echo -n "Shutting down crud_share_db.sh: "
+	#/usr/local/sbin/crud_share_db.sh delete Public /etc/samba/smb.conf
+	#RETVAL2=$?
+	RETVAL2=0
+	echo "done"
+
+	echo -n "Shutting down volume_mount.sh: "
+	#/usr/local/sbin/volume_mount.sh unmount "$HDSerial"_1
+	#RETVAL=$?
+	RETVAL=0
+	echo "done"
+
+	/usr/local/sbin/middleware_shutdown.sh
+
+	[ $RETVAL -eq 0 -a $RETVAL2 -eq 0 ] && rm -f /tmp/RestAPIReady || \
+	return $RETVAL
+}	
+
+restart() {
+	stop
+	start
+}	
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+  	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

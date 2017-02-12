@@ -93,6 +93,15 @@ define LIGHTTPD_INSTALL_INIT_SYSV
 	[ -f $(TARGET_DIR)/etc/init.d/S50lighttpd ] || \
 		$(INSTALL) -D -m 755 package/lighttpd/S50lighttpd \
 			$(TARGET_DIR)/etc/init.d/S50lighttpd
+
+	[ -f $(TARGET_DIR)/etc/lighttpd/conf.d/fastcgi.conf ] || \
+		$(INSTALL) -D -m 755 package/lighttpd/fastcgi.conf \
+			$(TARGET_DIR)/etc/lighttpd/conf.d/fastcgi.conf
+
+	[ -f $(TARGET_DIR)/var/www/test/index.php ] || \
+		mkdir -p $(TARGET_DIR)/var/www/test/ && \
+			$(INSTALL) -D -m 755 package/lighttpd/index.php \
+				$(TARGET_DIR)/var/www/test/index.php
 endef
 
 define LIGHTTPD_INSTALL_INIT_SYSTEMD

@@ -14,6 +14,20 @@ mkdir -p /var/lock/subsys
 RETVAL=0
 
 start() {
+	if [ ! -f /etc/samba/secrets.tdb ]; then
+		echo -n "Init SMB admin: "
+		echo "" | smbpasswd -a -s admin > /dev/null 2>/dev/null
+		RETVAL=$?
+		echo "done"
+	fi
+
+	if [ ! -f /etc/samba/passdb.tdb ]; then
+		echo -n "ReCheck SMB admin account: "
+		echo "" | smbpasswd -a -s admin > /dev/null 2>/dev/null
+		RETVAL=$?
+		echo "done"
+	fi
+
 	echo -n "Starting SMB services: "
 	smbd -D
 	RETVAL=$?

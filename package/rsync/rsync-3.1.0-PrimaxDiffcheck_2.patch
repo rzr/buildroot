@@ -1,0 +1,79 @@
+diff -uN rsync-3.1.0/delete.c rsync-3.1.0/delete.c
+--- rsync-3.1.0/delete.c	2013-01-20 03:05:53.000000000 +0800
++++ rsync-3.1.0/delete.c	2014-10-07 13:31:28.220989772 +0800
+@@ -137,6 +137,11 @@
+ 		rprintf(FINFO, "delete_item(%s) mode=%o flags=%d\n",
+ 			fbuf, (int)mode, (int)flags);
+ 	}
++	if (S_ISDIR(mode)) {
++		rprintf(FCLIENT, "RSYNC_delete_DIR %s \n", fbuf);
++	}else{
++		rprintf(FCLIENT, "RSYNC_delete_ITEM %s \n", fbuf);
++	}
+ 
+ 	if (flags & DEL_NO_UID_WRITE)
+ 		do_chmod(fbuf, mode | S_IWUSR);
+diff -uN rsync-3.1.0/generator.c rsync-3.1.0/generator.c
+--- rsync-3.1.0/generator.c	2013-01-20 03:05:53.000000000 +0800
++++ rsync-3.1.0/generator.c	2014-10-08 10:41:18.334284664 +0800
+@@ -563,7 +563,6 @@
+ 	}
+ }
+ 
+-
+ /* Perform our quick-check heuristic for determining if a file is unchanged. */
+ int unchanged_file(char *fn, struct file_struct *file, STRUCT_STAT *st)
+ {
+@@ -1643,16 +1642,25 @@
+ 		}
+ 		goto cleanup;
+ 	}
+-
+-	if (update_only > 0 && statret == 0
+-	    && cmp_time(sx.st.st_mtime, file->modtime) > 0) {
+-		if (INFO_GTE(SKIP, 1))
+-			rprintf(FINFO, "%s is newer\n", fname);
++	
++	if (update_only > 0 && statret == 0){
++		if(cmp_time(sx.st.st_mtime, file->modtime) != 0 || (sx.st.st_size != F_LENGTH(file)) )
++		{
++			//if (INFO_GTE(SKIP, 1))
++			//	rprintf(FINFO, "%s is newer\n", fname);
++			//rprintf(FINFO, "fname %s, gen mapped size %s, F_LENGTH size %d\n",
++			//	fname, big_num(sx.st.st_size), F_LENGTH(file));
++			
++			//rprintf(FINFO, "fname %s, time_differs %d\n",fname, cmp_time(file->modtime, sx.st.st_mtime));
++			//rprintf(FINFO, "update_only %d, statret %d\n",update_only, statret);
++		
++			rprintf(FINFO, "RSYNC_delete_ITEM %s\n", fname);
+ #ifdef SUPPORT_HARD_LINKS
+-		if (F_IS_HLINKED(file))
+-			handle_skipped_hlink(file, itemizing, code, f_out);
++			if (F_IS_HLINKED(file))
++				handle_skipped_hlink(file, itemizing, code, f_out);
+ #endif
+-		goto cleanup;
++			goto cleanup;
++		}
+ 	}
+ 
+ 	fnamecmp_type = FNAMECMP_FNAME;
+diff -uN rsync-3.1.0/log.c rsync-3.1.0/log.c
+--- rsync-3.1.0/log.c	2013-06-12 04:36:44.000000000 +0800
++++ rsync-3.1.0/log.c	2014-10-06 15:03:10.839150823 +0800
+@@ -853,14 +853,14 @@
+ 			len++; /* directories include trailing null */
+ 		send_msg(MSG_DELETED, fname, len, am_generator);
+ 	} else {
+-		fmt = stdout_format_has_o_or_i ? stdout_format : "deleting %n";
++		fmt = stdout_format_has_o_or_i ? stdout_format : "log_delete %n";
+ 		log_formatted(FCLIENT, fmt, "del.", &x.file, fname, ITEM_DELETED, NULL);
+ 	}
+ 
+ 	if (!logfile_name || dry_run || !logfile_format)
+ 		return;
+ 
+-	fmt = logfile_format_has_o_or_i ? logfile_format : "deleting %n";
++	fmt = logfile_format_has_o_or_i ? logfile_format : "log_delete %n";
+ 	log_formatted(FLOG, fmt, "del.", &x.file, fname, ITEM_DELETED, NULL);
+ }

@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+#
+
+RETVAL=0
+
+start() {
+    chmod -R 775 "/usr/local/nas/orion"
+    chown -R root:www-data "/usr/local/nas/orion"
+    chown -Rh :www-data "/var/www/rest-api"
+    chown -Rh :www-data "/var/www/htdocs"
+    chmod -R 2775 "/var/www/htdocs"
+    chmod -R g-w "/var/www/rest-api"
+    chmod -R g-w "/var/www/htdocs"
+    rm -Rf /var/www/rest-api/htdocs/mapdrive
+    chmod -R 775 "/var/www/rest-api/config"
+    chown -R root:www-data "/var/www/rest-api/config"
+}	
+
+stop() {
+	echo "Stop"
+}	
+
+restart() {
+	stop
+	start
+}	
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+  	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

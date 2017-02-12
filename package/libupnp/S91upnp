@@ -1,0 +1,146 @@
+#!/bin/sh
+#
+# Stolen from RedHat FC5.
+#
+source /etc/system.conf
+start() {
+   source /etc/nas/config/wifinetwork-param.conf
+   twointerface=0
+   SerialNumeber=`/usr/local/sbin/getSerialNumber.sh`
+   HostName=`hostname`
+   mac_addr=`ifconfig "wlan1" | grep -m 1 "wlan[0-9] " | sed -n -e 's/.*HWaddr \(.*\)/\1/p' | tr -d ":" | sed 's/^[ \t]*//;s/[ \t]*$//' | tr [:upper:] [:lower:]`
+   uuid=`echo "73656761-7465-7375-636b-$mac_addr"`
+   
+   capacity=`/usr/sbin/get_capacity.sh`
+   case ${capacity} in
+   		0)
+   			modelNumber_line=`cat /etc/system.conf | grep "WDBLJT" | wc -l`
+   			if [ "$modelNumber_line" == "0" ]; then
+    			echo "restore system.conf"
+    			cp /etc/system.conf.default /etc/system.conf
+    			sed -i 's/modelNumber=.*/modelNumber=\"WDBLJT\"/' /etc/system.conf
+    			modelNumber=WDBLJT
+   			fi
+   		;;
+   		1)
+   			modelNumber_line=`cat /etc/system.conf | grep "WDBK8Z" | wc -l`
+   			if [ "$modelNumber_line" == "0" ]; then
+    			echo "restore system.conf"
+    			cp /etc/system.conf.default /etc/system.conf
+    			sed -i 's/modelNumber=.*/modelNumber=\"WDBK8Z\"/' /etc/system.conf
+    			modelNumber=WDBK8Z
+   			fi
+   		;;
+   		2)
+   			modelNumber_line=`cat /etc/system.conf | grep "WDBDAF" | wc -l`
+   			if [ "$modelNumber_line" == "0" ]; then
+    			echo "restore system.conf"
+    			cp /etc/system.conf.default /etc/system.conf
+    			sed -i 's/modelNumber=.*/modelNumber=\"WDBDAF\"/' /etc/system.conf
+    			modelNumber=WDBDAF
+   			fi
+   		;;
+   		*)
+   			modelNumber_line=`cat /etc/system.conf | grep "WDBDAF" | wc -l`
+   			if [ "$modelNumber_line" == "0" ]; then
+    			echo "restore system.conf"
+    			cp /etc/system.conf.default /etc/system.conf
+    			sed -i 's/modelNumber=.*/modelNumber=\"WDBDAF\"/' /etc/system.conf
+    			modelNumber=WDBDAF
+   			fi
+   		;;
+   esac
+  
+   if [ ! -d "/tmp/upnp/web_wlan0" ] && [ ! -d "/tmp/upnp/web_wlan1" ]; then
+   		mkdir -p /tmp/upnp/web_wlan1
+   		chmod -R 755 /tmp/upnp/web_wlan1
+   		mkdir -p /tmp/upnp/web_wlan0
+   		chmod -R 755 /tmp/upnp/web_wlan0
+   		echo "create /tmp/upnp/web_wlan"
+   		cp -a /usr/local/upnp/web_wlan1/* /tmp/upnp/web_wlan1/
+   		cp -a /usr/local/upnp/web_wlan1/* /tmp/upnp/web_wlan0/
+   fi
+   
+   	sed -i 's/<friendlyName>.*/\<friendlyName\>'$HostName'\<\/friendlyName\>/' /tmp/upnp/web_wlan1/nasdevicedesc.xml
+    sed -i 's/<friendlyName>.*/\<friendlyName\>'$HostName'\<\/friendlyName\>/' /tmp/upnp/web_wlan0/nasdevicedesc.xml
+    sed -i 's/<serialNumber>.*/\<serialNumber\>'$SerialNumeber'\<\/serialNumber\>/' /tmp/upnp/web_wlan1/nasdevicedesc.xml
+    sed -i 's/<serialNumber>.*/\<serialNumber\>'$SerialNumeber'\<\/serialNumber\>/' /tmp/upnp/web_wlan0/nasdevicedesc.xml
+    sed -i 's/<UDN>.*/\<UDN\>uuid:'$uuid'\<\/UDN\>/' /tmp/upnp/web_wlan1/nasdevicedesc.xml
+    sed -i 's/<UDN>.*/\<UDN\>uuid:'$uuid'\<\/UDN\>/' /tmp/upnp/web_wlan0/nasdevicedesc.xml
+    
+    if [ "$modelNumber" == "" ] || [ "$modelNumber" == "AV1W" ]; then
+    	echo "Unknown modelNumber"
+    	modelNumber=WDBDAF
+   	fi
+   	sed -i 's/<modelNumber>.*/\<modelNumber\>'${modelNumber}'\<\/modelNumber\>/' /tmp/upnp/web_wlan1/nasdevicedesc.xml
+    sed -i 's/<modelNumber>.*/\<modelNumber\>'${modelNumber}'\<\/modelNumber\>/' /tmp/upnp/web_wlan0/nasdevicedesc.xml
+   	
+	if [ -f "/tmp/ifplugd_trust" ]; then
+		bindif=`cat /tmp/ifplugd_trust`
+		if [ "$bindif" == "trusted" ]; then
+			wlan0Ip=`wpa_cli -i wlan0 status | grep -rsw "ip_address" | awk -F= '{print $NF}'`
+			wlan0num=`ps aux | grep upnp_nas_device | grep $wlan0Ip | wc -l`
+			if [ "$wlan0num" == "0" ]; then
+				sed -i 's/<presentationURL>.*/\<presentationURL\>http:\/\/'$wlan0Ip'\<\/presentationURL\>/' /tmp/upnp/web_wlan0/nasdevicedesc.xml
+				echo -n "Starting Wlan0 UPNP services: "
+				/usr/local/upnp/upnp_nas_device -ip $wlan0Ip -webdir /tmp/upnp/web_wlan0 &
+				twointerface=1
+			fi
+		fi
+	fi	
+	
+	apif=`ifconfig | grep ^wlan1`
+	if [ "$apif" != "" ]; then
+		if [ "$twointerface" == "1" ]; then
+			sleep 10
+		fi
+		wlan1num=`ps aux | grep upnp_nas_device | grep $AP_IP | wc -l`
+		if [ "$wlan1num" == "0" ]; then
+			echo -n "Starting Wlan1 UPNP services: "
+			sed -i 's/<presentationURL>.*/\<presentationURL\>http:\/\/'$AP_IP'\<\/presentationURL\>/' /tmp/upnp/web_wlan1/nasdevicedesc.xml
+			/usr/local/upnp/upnp_nas_device -ip $AP_IP -webdir /tmp/upnp/web_wlan1 &	
+		fi
+	fi
+}	
+
+stop() {
+	killall upnp_nas_device
+}	
+
+restart() {
+	stop
+	sleep 1
+	if [ ! -f "/etc/nas/config/upnp" ]; then
+		start
+	fi
+}	
+
+reload() {
+#        echo -n "Reloading smb.conf file: "
+#	kill -HUP `pidof smbd`
+#	RETVAL=$?
+	echo "done"
+#	return $RETVAL
+}	
+
+case "$1" in
+  start)
+	if [ ! -f "/etc/nas/config/upnp" ]; then
+  		start
+	fi
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+  	restart
+	;;
+  reload)
+  	reload
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart|reload}"
+	exit 1
+esac
+
+exit $?

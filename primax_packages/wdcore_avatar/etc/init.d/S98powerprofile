@@ -1,0 +1,138 @@
+#!/bin/sh
+#
+# WD AM3352 PowerProfile
+
+source /etc/power.conf
+
+RETVAL=0
+ACMode=`cat /tmp/battery | cut -d " " -f 1`
+
+start() {
+
+	echo -n "Starting CPU Power Profile: "
+	if [ "${powerprofile}" == "max_system_performance" ] && [ "${ACMode}" == "charging" ] ; then
+		echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+		echo 800000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+		Current_mode=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
+		Current_speed=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq`
+		if [ "${Current_mode}" == "userspace" ] && [ "${Current_speed}" == "800000" ]; then
+			echo "done"
+		else
+			echo "failed"
+		fi
+	fi
+
+	if [ "${powerprofile}" == "max_system_performance" ] && [ "${ACMode}" == "discharging" ] ; then
+		#echo ondemand > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+ 		echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+		echo 800000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+		Current_mode=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
+		Current_speed=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq`
+		if [ "${Current_mode}" == "userspace" ] && [ "${Current_speed}" == "800000" ]; then
+			echo "done"
+		else
+			echo "failed"
+		fi
+	fi
+	
+	if [ "${powerprofile}" == "max_life" ] && [ "${ACMode}" == "charging" ] ; then
+		echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+		echo 800000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+		Current_mode=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
+		Current_speed=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq`
+		if [ "${Current_mode}" == "userspace" ] && [ "${Current_speed}" == "800000" ]; then
+			echo "done"
+		else
+			echo "failed"
+		fi
+	fi
+
+	if [ "${powerprofile}" == "max_life" ] && [ "${ACMode}" == "discharging" ] ; then
+		echo userspace > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+		echo 300000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed
+		Current_mode=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
+		Current_speed=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq`
+		if [ "${Current_mode}" == "userspace" ] && [ "${Current_speed}" == "300000" ]; then
+			echo "done"
+		else
+			echo "failed"
+		fi
+	fi
+	echo -n "Starting HD Power Profile: "
+	/usr/local/sbin/getSerialNumber.sh > /dev/null 2>&1
+	for diskvolume in /sys/bus/scsi/devices/*; do
+		if [ -f "${diskvolume}/vendor" ] && [ -f "${diskvolume}/model" ] ; then
+			vendor=`cat "$diskvolume/vendor" | awk '{print $1}'`
+			model=`cat "$diskvolume/model"`
+			if [ "${vendor}" == "WD" ] && [ "${model}" == "My Passport 083C" ]; then
+				suspend_path=$diskvolume
+				if [ "${ACMode}" == "discharging" ] ; then
+					if [ "${powerprofile}" == "max_system_performance" ] ;then
+						timeout=60000
+					fi
+					if [ "${powerprofile}" == "max_life" ] ;then
+						timeout=30000
+					fi
+					for scsi_volume in $suspend_path/scsi_disk/*; do
+						if [ -f "${scsi_volume}/manage_start_stop" ] ; then
+							echo 1 > $scsi_volume/manage_start_stop
+							echo auto >  $suspend_path/power/control
+							echo $timeout >  $suspend_path/power/autosuspend_delay_ms
+						fi			
+					done
+				else
+					echo on >  $suspend_path/power/control
+				fi
+                break
+			fi
+		fi
+	done
+	echo "done"
+	#echo -n "Starting SWAP sevice: "
+	#if [ "${ACMode}" == "charging" ] ; then
+	#	/sbin/EnableDisableSwap.sh enable &
+	#fi
+	#echo "done"
+}	
+
+stop() {
+	echo -n "Stop CPU Power Profile: "
+	echo "done"
+	
+	#echo -n "Stop HD Power Profile: "
+	#echo "done"
+	#/sbin/EnableDisableSwap.sh disable
+}	
+
+restart() {
+	stop
+	start
+}	
+
+
+report_status(){
+	Current_mode=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
+	Current_speed=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq`
+	#echo -n "Current_mode=""$Current_mode "
+	echo "Current_speed=""$Current_speed"
+}
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+  	restart
+	;;
+  status)
+  	report_status
+  	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

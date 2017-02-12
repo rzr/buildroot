@@ -4,7 +4,7 @@
 #
 #############################################################
 
-PHP_VERSION = 5.3.24
+PHP_VERSION = 5.4.19
 PHP_SOURCE = php-$(PHP_VERSION).tar.bz2
 PHP_SITE = http://www.php.net/distributions
 PHP_INSTALL_STAGING = YES
@@ -15,9 +15,11 @@ PHP_LICENSE_FILES = LICENSE
 PHP_CONF_OPT =  --mandir=/usr/share/man \
 		--infodir=/usr/share/info \
 		--disable-all \
-		--without-pear \
 		--with-config-file-path=/etc \
 		--localstatedir=/var \
+		--with-pear=/usr/lib/php \
+		--with-sqlite3=$(STAGING_DIR)/usr \
+		--enable-phar \
 		--disable-rpath
 PHP_CONFIG_SCRIPTS = php-config
 
@@ -35,6 +37,12 @@ PHP_CONF_OPT += $(if $(BR2_PACKAGE_PHP_CGI),,--disable-cgi)
 
 ### Extensions
 PHP_CONF_OPT += $(if $(BR2_PACKAGE_PHP_EXT_SOCKETS),--enable-sockets) \
+		$(if $(BR2_PACKAGE_PHP_EXT_APC),--enable-apc) \
+		$(if $(BR2_PACKAGE_PHP_EXT_FPM),--enable-fpm --with-fpm-user=root --with-fpm-group=root) \
+		$(if $(BR2_PACKAGE_PHP_EXT_MCRYPT),--with-mcrypt=$(STAGING_DIR)/usr) \
+		$(if $(BR2_PACKAGE_PHP_EXT_MHASH),--with-mhash=$(STAGING_DIR)/usr) \
+		$(if $(BR2_PACKAGE_PHP_EXT_MBSTRING),--enable-mbstring) \
+		$(if $(BR2_PACKAGE_PHP_EXT_PEAR),--enable-pear) \
 		$(if $(BR2_PACKAGE_PHP_EXT_POSIX),--enable-posix) \
 		$(if $(BR2_PACKAGE_PHP_EXT_SESSION),--enable-session) \
 		$(if $(BR2_PACKAGE_PHP_EXT_HASH),--enable-hash) \
@@ -120,9 +128,9 @@ ifeq ($(BR2_PACKAGE_PHP_EXT_READLINE),y)
 	PHP_DEPENDENCIES += readline
 endif
 
-### Legacy sqlite2 support
+### Legacy sqlite3 support
 ifeq ($(BR2_PACKAGE_PHP_EXT_SQLITE),y)
-	PHP_CONF_OPT += --with-sqlite
+	PHP_CONF_OPT += --with-sqlite3
 ifneq ($(BR2_LARGEFILE),y)
 	PHP_CFLAGS += -DSQLITE_DISABLE_LFS
 endif
@@ -209,9 +217,19 @@ define PHP_INSTALL_FIXUP
 		$(INSTALL) -m 0755  $(PHP_DIR)/php.ini-production \
 			$(TARGET_DIR)/etc/php.ini; \
 	fi
+	if [ ! -f $(TARGET_DIR)/etc/php-fpm.conf ]; then \
+		$(INSTALL) -m 0755  $(PHP_DIR)/sapi/fpm/php-fpm.conf \
+			$(TARGET_DIR)/etc/php-fpm.conf; \
+	fi
 endef
 
 PHP_POST_INSTALL_TARGET_HOOKS += PHP_INSTALL_FIXUP
+
+define PHP_INSTALL_INIT_SYSV
+	[ -f $(TARGET_DIR)/etc/init.d/S51php-fpm ] || \
+		$(INSTALL) -D -m 755 package/php/S51php-fpm \
+			$(TARGET_DIR)/etc/init.d/S51php-fpm
+endef
 
 define PHP_UNINSTALL_STAGING_CMDS
 	rm -rf $(STAGING_DIR)/usr/include/php

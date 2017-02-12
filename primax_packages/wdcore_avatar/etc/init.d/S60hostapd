@@ -1,0 +1,126 @@
+#!/bin/sh
+#
+# Starts hostapd.
+#
+source /etc/nas/config/wifinetwork-param.conf
+isConfigured=`/sbin/fw_printenv | grep MAC_ADDR | wc -l`
+MACA_ADDR=`/sbin/fw_printenv | grep MAC_ADDR | cut -d '=' -f 2`
+restartFlag=0
+
+NetworkParamCheck(){
+	if [ ! -f "/etc/nas/config/wifinetwork-param.conf" ]; then
+        cp -a /etc/nas/config/wifinetwork-param.default.conf /etc/nas/config/wifinetwork-param.conf
+        . /etc/nas/config/wifinetwork-param.conf 2>/dev/null
+	else
+        Apinface=`cat /etc/nas/config/wifinetwork-param.conf | grep -rsw AP_IFACE`
+        Cliinface=`cat /etc/nas/config/wifinetwork-param.conf | grep STA_IFACE`
+
+        if [ "$Apinface" != "AP_IFACE=wlan1" ] || [ "$Cliinface" != "STA_IFACE=wlan0" ]; then
+            cp -a /etc/nas/config/wifinetwork-param.default.conf /etc/nas/config/wifinetwork-param.conf
+            . /etc/nas/config/wifinetwork-param.conf 2>/dev/null
+        fi
+	fi
+}
+
+NetworkIfaceCheck(){
+	if [ ! -f "/etc/network/interfaces" ]; then
+		cp -a /etc/network/interfaces_bak /etc/network/interfaces	
+	else
+		DHCP=`cat /etc/network/interfaces | grep dhcp`
+		Static=`cat /etc/network/interfaces | grep static`
+		if [ "$DHCP" == "" ] && [ "$Static" == "" ]; then
+			cp -a /etc/network/interfaces_bak /etc/network/interfaces
+		fi
+	fi
+}
+
+NetworkDhcpdCheck(){
+	if [ ! -f "/etc/dhcpd.conf" ]; then
+		cp -a /etc/dhcpd.conf.bak /etc/dhcpd.conf	
+	else
+		maxlease=`cat /etc/dhcpd.conf | grep "604800"`
+		defaultlease=`cat /etc/dhcpd.conf | grep "86400" | head -1`
+		if [ "$maxlease" != "max-lease-time 604800;" ] && [ "$defaultlease" != "default-lease-time 86400;" ]; then	
+			cp -a /etc/dhcpd.conf.bak /etc/dhcpd.conf	
+		fi
+	fi
+}
+
+start() {
+	if [ "$restartFlag" == "0" ]; then
+		iw phy0 interface add wlan1 type managed
+		if [ "$isConfigured" == "1" ] ; then
+    		ifconfig wlan1 hw ether $MACA_ADDR
+		fi
+	fi
+
+	APmode=`/usr/local/sbin/wifi_ap_get_config.sh |grep "enabled=" | awk -F= '{print $2}'| awk '{print $1}'`
+	if [ "$APmode" == "true" ] || [ "$APmode" == \""true"\" ]; then
+		echo -n "Starting hostapd: "
+	
+		if [ ! -f "/tmp/ConnectionMode" ]; then
+			echo "ApMode" > /tmp/ConnectionMode
+		fi
+		ifconfig $AP_IFACE $AP_IP netmask $AP_MASK up
+		if [ ! -f "/etc/hostapd/hostapd.conf" ]; then
+			cp -a /etc/hostapd/hostapd.default.conf /etc/hostapd/hostapd.conf
+			wifi-restart AP
+		else
+			interface=`cat /etc/hostapd/hostapd.conf | grep -rsw interface`
+			driver=`cat /etc/hostapd/hostapd.conf | grep driver`
+			preamble=`cat /etc/hostapd/hostapd.conf | grep preamble`
+			dtim_period=`cat /etc/hostapd/hostapd.conf | grep dtim_period`
+			if [ "$interface" != "interface=wlan1" ] || [ "$driver" != "driver=nl80211" ] || [ "$preamble" != "preamble=1" ] || [ "$dtim_period" != "dtim_period=2"  ]; then
+				cp -a /etc/hostapd/hostapd.default.conf /etc/hostapd/hostapd.conf
+				wifi-restart AP
+			else
+				if [ ! -f "/tmp/CurrentChannel" ]; then
+					if [ "$AP_CHANNEL" == "0" ]; then 
+						sed -i 's/channel=.*/channel='${AP_CHANNEL}'/' /etc/hostapd/hostapd.conf
+					fi
+				fi
+				/usr/sbin/hostapd /etc/hostapd/hostapd.conf &
+			fi
+		fi
+		#start-stop-daemon -S -q -p /var/run/hostapd.pid --exec /usr/sbin/hostapd -- /etc/hostapd/hostapd.conf &
+		sleep 3	
+        ifconfig $AP_IFACE promisc
+        route add -net 224.0.0.0 netmask 240.0.0.0 dev $AP_IFACE
+		echo "OK"
+	fi
+}
+stop() {
+	echo -n "Stopping hostapd: "
+	killall hostapd
+	#start-stop-daemon -K -q -p /var/run/hostapd.pid
+	echo "OK"
+}
+restart() {
+	stop
+	NetworkParamCheck
+  	NetworkIfaceCheck
+  	NetworkDhcpdCheck
+	start
+}
+
+case "$1" in
+  start)
+  	NetworkParamCheck
+  	NetworkIfaceCheck
+  	NetworkDhcpdCheck
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+  	restartFlag=1
+	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
