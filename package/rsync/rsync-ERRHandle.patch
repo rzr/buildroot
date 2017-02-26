@@ -1,0 +1,77 @@
+--- /sender.c	2013-01-20 03:05:53.000000000 +0800
++++ /sender.c	2014-07-27 17:05:08.474843507 +0800
+@@ -21,6 +21,7 @@
+ 
+ #include "rsync.h"
+ #include "inums.h"
++#include <io.h>
+ 
+ extern int do_xfers;
+ extern int am_server;
+@@ -45,6 +46,7 @@
+ extern int file_old_total;
+ extern struct stats stats;
+ extern struct file_list *cur_flist, *first_flist, *dir_flist;
++extern char *backup_path;
+ 
+ BOOL extra_flist_sending_enabled;
+ 
+@@ -200,7 +202,9 @@
+ 	int f_xfer = write_batch < 0 ? batch_fd : f_out;
+ 	int save_io_error = io_error;
+ 	int ndx, j;
+-
++	int des_path = -1;
++	int source_path = -1;
++	
+ 	if (DEBUG_GTE(SEND, 1))
+ 		rprintf(FINFO, "send_files starting\n");
+ 
+@@ -209,7 +213,11 @@
+ 			send_extra_file_list(f_out, MIN_FILECNT_LOOKAHEAD);
+ 			extra_flist_sending_enabled = !flist_eof;
+ 		}
+-
++		/*Jeff.Yao, 20140716, add error handle for destination path {*/
++		des_path	= access(backup_path, F_OK);
++		if (des_path < 0)
++			exit_cleanup(RERR_PARTIAL);
++		/*Jeff.Yao, 20140716, add error handle for destination path }*/
+ 		/* This call also sets cur_flist. */
+ 		ndx = read_ndx_and_attrs(f_in, f_out, &iflags, &fnamecmp_type,
+ 					 xname, &xlen);
+@@ -257,7 +265,11 @@
+ 
+ 		if (DEBUG_GTE(SEND, 1))
+ 			rprintf(FINFO, "send_files(%d, %s%s%s)\n", ndx, path,slash,fname);
+-
++		/*Jeff.Yao, 20140721, add error handle for destination path {*/
++		source_path = access(path, F_OK);
++		if (source_path < 0)
++			exit_cleanup(RERR_PARTIAL);
++		/*Jeff.Yao, 20140721, add error handle for destination path {*/
+ #ifdef SUPPORT_XATTRS
+ 		if (preserve_xattrs && iflags & ITEM_REPORT_XATTR && do_xfers
+ 		 && (protocol_version < 31 || !BITS_SET(iflags, ITEM_XNAME_FOLLOWS|ITEM_LOCAL_CHANGE)))
+
+--- /main.c	2013-01-20 03:05:53.000000000 +0800
++++ /main.c	2014-07-15 11:24:51.139060596 +0800
+@@ -104,6 +104,8 @@
+ int batch_gen_fd = -1;
+ int sender_keeps_checksum = 0;
+ 
++char *backup_path;
++
+ /* There's probably never more than at most 2 outstanding child processes,
+  * but set it higher, just in case. */
+ #define MAXCHILDPROCS 7
+@@ -1530,7 +1532,8 @@
+ 	our_uid = MY_UID();
+ 	our_gid = MY_GID();
+ 	am_root = our_uid == 0;
+-
++	backup_path = orig_argv[orig_argc-1];
++	
+ 	memset(&stats, 0, sizeof(stats));
+ 
+ 	if (argc < 2) {

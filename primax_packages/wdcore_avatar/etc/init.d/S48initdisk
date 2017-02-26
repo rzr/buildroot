@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+#
+
+RETVAL=0
+
+start() {
+    if [ ! -d "/etc/updateCounts" ]; then
+        mkdir -p /etc/updateCounts
+        echo 1 > /etc/updateCounts/alert
+        echo 1 > /etc/updateCounts/data_volume_write
+        echo 1 > /etc/updateCounts/firmware_update
+        echo 1 > /etc/updateCounts/system_state
+        echo 1 > /etc/updateCounts/battery
+        echo 1 > /etc/updateCounts/wifi_ap
+        echo 1 > /etc/updateCounts/wifi_client_connection
+        echo 1 > /etc/updateCounts/storage_transfer
+    fi
+    if [ ! -f "/etc/updateCounts/storage_transfer" ]; then
+        echo 1 > /etc/updateCounts/storage_transfer
+    fi
+    if [ ! -f "/var/lock/updateCounts.lock" ]; then
+        touch /var/lock/updateCounts.lock
+    fi
+    if [ ! -L "/shares/Public" ]; then
+        echo "Setup Share Public"
+        ln -sf /media/sdb1 /shares/Public
+    fi
+
+    if [ -f "/media/sdb1/WD Online Lerning.html" ]; then
+        mv "/media/sdb1/WD Online Lerning.html" "/media/sdb1/WD Online Learning.html"
+    fi
+}	
+
+stop() {
+	echo "Stop"
+}	
+
+restart() {
+	stop
+	start
+}	
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+  	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

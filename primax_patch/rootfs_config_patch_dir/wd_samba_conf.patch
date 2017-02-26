@@ -1,0 +1,73 @@
+--- etc/samba/smb.conf	2013-11-19 14:23:25.408595191 +0800
++++ etc/samba/smb.conf	2014-03-14 02:30:32.755881470 +0800
+@@ -1,14 +1,25 @@
+ #======================= Global Settings =====================================
+ [global]
+ workgroup = WORKGROUP
+-server string = MYDATA
++server string = MyPassport
++netbios name = MyPassport
+ max log size = 50
+-security = share
++security = user
++map to guest = Bad user
+ encrypt passwords = yes
+ smb passwd file = /etc/samba/smbpasswd
++passdb backend = smbpasswd
+ log file = /var/log/samba/log.smbd
+-hosts allow = ALL
+-socket options = TCP_NODELAY SO_RCVBUF=8192 SO_SNDBUF=8192
++socket options = TCP_NODELAY SO_RCVBUF=67108864 SO_SNDBUF=67108864 IPTOS_LOWDELAY SO_KEEPALIVE
++max xmit = 131072
++use sendfile = yes
++large readwrite = yes
++aio read size = 64360
++aio write size = 64360
++aio write behind = true
++write cache size = 12826144
++min receivefile size = 16384
++delete veto files = yes
+ 
+ #============================ Share Definitions ==============================
+ idmap uid = 16777216-33554431
+@@ -16,9 +27,36 @@
+ template shell = /bin/false
+ winbind use default domain = no
+ 
+-[root]
+-path = /root
++[Public]
++comment = 
++path = /media/sdb1
++browseable = yes
+ public = yes
+-only guest = yes
++guest ok = yes
++oplocks = yes
++map archive = no
+ writable = yes
+-printable = no
++read only = No
++veto files = /.bin/.AppleDesktop/Network Trash Folder/.twonkymedia/.wd-alert/.wdmc/.wdcache/
++valid users = "nobody","admin"
++invalid users = 
++write list = "nobody","admin"
++read list = 
++create mask = 0777
++force create mode = 0777
++security mask = 000
++force security mode = 777
++directory mask = 0777
++force directory mode = 0777
++directory security mask = 000
++force directory security mode = 777
++
++[SD]
++path = /media/SDcard
++guest ok = yes
++oplocks = no
++browseable = yes
++writable = yes
++create mask = 0777
++directory mask = 0777
++

@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# Start fwupf....
+#
+LCGROUP=/sys/fs/cgroup/lighttpd
+
+lighttpd_cgroup()
+{
+	if [ ! -d "$LCGROUP" ]; then
+		mkdir $LCGROUP
+	fi
+	echo 80M > $LCGROUP/memory.limit_in_bytes
+	echo 80M > $LCGROUP/memory.memsw.limit_in_bytes
+	echo "0" > $LCGROUP/memory.oom_control
+	pidnum=`pidof lighttpd`
+	echo $pidnum > $LCGROUP/tasks
+	
+}
+
+primax_syschk()
+{
+	php=`ps | grep php | wc -l`
+	httpd=`ps | grep httpd | wc -l`
+	if [ ! -f /tmp/Rebooting ]; then	
+		if [ $php -lt 2 ] || [ $httpd -lt 2 ]; then
+			echo "PHP or Lighttpd service fail"
+			echo "make kernel corrupt" > /tmp/corrupt
+			nandwrite -p /dev/mtd6 /tmp/corrupt
+        		#nandwrite -p /dev/mtd7 /tmp/corrupt
+        		echo "17;0;" > /tmp/MCU_Cmd
+			reboot
+		else
+			echo "system check pass"
+		fi
+	else
+		echo "System Rebooting...Systemp check ignore"
+	fi
+}
+
+case "$1" in
+  start)
+	echo "Starting syschk..."
+	primax_syschk
+	lighttpd_cgroup
+	;;
+  stop)
+	;;
+  restart|reload)
+	;;
+  recheck_lighttpd)
+ 	sleep 5
+  	lighttpd_cgroup
+  	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+

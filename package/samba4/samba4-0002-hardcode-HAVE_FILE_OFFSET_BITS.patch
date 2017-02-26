@@ -1,0 +1,32 @@
+Hardcode HAVE_OFFSET_BITS test since it doesn't use the answer cache.
+It should be defined via conf.CHECK_CODE instead.
+
+Status: hack.
+
+Signed-off-by: Gustavo Zacarias <gustavo@zacarias.com.ar>
+
+diff -Nura samba-4.1.3.orig/lib/ccan/wscript samba-4.1.3/lib/ccan/wscript
+--- samba-4.1.3.orig/lib/ccan/wscript	2013-12-13 16:45:46.979966406 -0300
++++ samba-4.1.3/lib/ccan/wscript	2013-12-13 17:12:51.162481945 -0300
+@@ -124,20 +124,7 @@
+     # backtrace could be in libexecinfo or in libc
+     conf.CHECK_FUNCS_IN('backtrace backtrace_symbols', 'execinfo', checklibc=True, headers='execinfo.h')
+ 
+-    # Only check for FILE_OFFSET_BITS=64 if off_t is normally small:
+-    # use raw routines because wrappers include previous _GNU_SOURCE
+-    # or _FILE_OFFSET_BITS defines.
+-    conf.check(fragment="""#include <sys/types.h>
+-               int main(void) { return !(sizeof(off_t) < 8); }""",
+-               execute=True, msg='Checking for small off_t',
+-               define_name='SMALL_OFF_T')
+-    # Unreliable return value above, hence use define.
+-    if conf.CONFIG_SET('SMALL_OFF_T'):
+-        conf.check(fragment="""#include <sys/types.h>
+-                   int main(void) { return !(sizeof(off_t) >= 8); }""",
+-                   execute=True, msg='Checking for -D_FILE_OFFSET_BITS=64',
+-                   ccflags='-D_FILE_OFFSET_BITS=64',
+-                   define_name='HAVE_FILE_OFFSET_BITS')
++    conf.DEFINE('HAVE_FILE_OFFSET_BITS', 1)
+ 
+ def ccan_module(bld, name, deps=''):
+     bld.SAMBA_SUBSYSTEM('ccan-%s' % name,

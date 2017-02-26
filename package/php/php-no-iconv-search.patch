@@ -5,9 +5,9 @@ internal iconv support, which breaks things.
 
 Signed-off-by: Gustavo Zacarias <gustavo@zacarias.com.ar>
 
-diff -Nura php-5.3.13/configure php-5.3.13-iconv/configure
---- php-5.3.13/configure	2012-05-08 06:41:23.000000000 -0300
-+++ php-5.3.13-iconv/configure	2012-05-18 22:18:21.313975849 -0300
+diff -Nura php-5.4.19/configure php-5.4.19-iconv/configure
+--- php-5.4.19/configure	2012-05-08 06:41:23.000000000 -0300
++++ php-5.4.19-iconv/configure	2012-05-18 22:18:21.313975849 -0300
 @@ -47885,8 +47885,8 @@
        PHP_ICONV_PREFIX="$ICONV_DIR"
      fi

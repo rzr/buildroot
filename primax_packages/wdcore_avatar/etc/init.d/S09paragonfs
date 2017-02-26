@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# Start Paragon FS driver....
+#
+
+case "$1" in
+  start)
+	echo "Starting Paragon FS driver ..."
+ 	insmod /lib/modules/jnl.ko
+ 	insmod /lib/modules/ufsd.ko
+	;;
+  stop)
+ 	#rmmod jnl
+ 	#rmmod ufsd
+	;;
+  restart|reload)
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

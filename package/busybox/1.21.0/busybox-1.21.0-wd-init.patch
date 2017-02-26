@@ -1,0 +1,41 @@
+--- busybox-1.21.0/init/init.c	2013-01-15 01:04:27.000000000 +0800
++++ busybox-1.21.0-wdinit/init/init.c	2014-01-03 16:40:38.982568263 +0800
+@@ -729,14 +729,17 @@
+ 		sleep(1);
+ }
+ 
+-static void run_shutdown_and_kill_processes(void)
++static void run_shutdown_and_kill_processes(int sig)
+ {
+ 	/* Run everything to be run at "shutdown".  This is done _prior_
+ 	 * to killing everything, in case people wish to use scripts to
+ 	 * shut things down gracefully... */
+ 	run_actions(SHUTDOWN);
+-
+-	message(L_CONSOLE | L_LOG, "The system is going down NOW!");
++    if (sig == SIGUSR1)
++        system("/bin/echo \"25;0\" > /tmp/MCU_Cmd");
++    if (sig == SIGTERM)
++        system("/bin/echo \"16;0\" > /tmp/MCU_Cmd");
++    message(L_CONSOLE | L_LOG, "The system is going down NOW!");
+ 
+ 	/* Send signals to every process _except_ pid 1 */
+ 	kill(-1, SIGTERM);
+@@ -801,7 +804,7 @@
+ 	 */
+ 	reset_sighandlers_and_unblock_sigs();
+ 
+-	run_shutdown_and_kill_processes();
++	run_shutdown_and_kill_processes(sig);
+ 
+ 	m = "halt";
+ 	rb = RB_HALT_SYSTEM;
+@@ -834,7 +837,7 @@
+ 
+ 		reset_sighandlers_and_unblock_sigs();
+ 
+-		run_shutdown_and_kill_processes();
++		run_shutdown_and_kill_processes(sig);
+ 
+ #ifdef RB_ENABLE_CAD
+ 		/* Allow Ctrl-Alt-Del to reboot the system.

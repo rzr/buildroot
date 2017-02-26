@@ -1,0 +1,71 @@
+From 20bc704435dae0b783f921e9889df40329bfea43 Mon Sep 17 00:00:00 2001
+From: Maxime Ripard <maxime.ripard@free-electrons.com>
+Date: Wed, 4 Sep 2013 14:44:46 +0200
+Subject: [PATCH] samba: waf: Make waf behave a bit more cross-compilation
+ friendly
+
+samba's waf use makes a lot of assumption on compiling natively: it
+tries to execute binaries it just built, tries to execute the host
+python to then retrieve the library path, etc.
+
+Do a few dirty hacks to get the thing going. It will obviously need some
+proper cleanup.
+
+Signed-off-by: Maxime Ripard <maxime.ripard@free-electrons.com>
+[Gustavo: no need to define python_* just blank it out for the checks]
+---
+ buildtools/wafadmin/Tools/python.py | 3 +++
+ source3/wscript                     | 4 ++--
+ wscript                             | 1 -
+ 3 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/buildtools/wafadmin/Tools/python.py b/buildtools/wafadmin/Tools/python.py
+index a15e1f6..286793f 100644
+--- a/buildtools/wafadmin/Tools/python.py
++++ b/buildtools/wafadmin/Tools/python.py
+@@ -178,6 +178,9 @@ def check_python_headers(conf, mandatory=True):
+ 	except RuntimeError:
+ 		conf.fatal("Python development headers not found (-v for details).")
+ 
++	python_LIBDIR = ""
++	python_LDFLAGS = ""
++
+ 	conf.log.write("""Configuration returned from %r:
+ python_prefix = %r
+ python_SO = %r
+diff --git a/source3/wscript b/source3/wscript
+index 00432c4..b21c510 100644
+--- a/source3/wscript
++++ b/source3/wscript
+@@ -946,7 +946,7 @@ syscall(SYS_setgroups32, 0, NULL);
+                                 ''',
+                                 'USE_LINUX_THREAD_CREDENTIALS',
+                                 addmain=False,
+-                                execute=True,
++                                # execute=True,
+                                 msg="Checking whether we can use Linux thread-specific credentials with 32-bit system calls")
+         else:
+             seteuid = conf.CHECK_CODE('''
+@@ -957,7 +957,7 @@ syscall(SYS_setgroups32, 0, NULL);
+                                 ''',
+                                 'USE_LINUX_THREAD_CREDENTIALS',
+                                 addmain=False,
+-                                execute=True,
++                                # execute=True,
+                                 msg="Checking whether we can use Linux thread-specific credentials")
+     if not seteuid:
+         seteuid = conf.CHECK_CODE('''
+diff --git a/wscript b/wscript
+index 087e950..41fa711 100644
+--- a/wscript
++++ b/wscript
+@@ -170,7 +170,6 @@ def configure(conf):
+     if not conf.CHECK_CODE('#include "tests/summary.c"',
+                            define='SUMMARY_PASSES',
+                            addmain=False,
+-                           execute=True,
+                            msg='Checking configure summary'):
+         raise Utils.WafError('configure summary failed')
+     
+-- 
+1.8.4

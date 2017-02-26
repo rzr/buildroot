@@ -1,0 +1,8 @@
+/var/log/php-errors.log  {
+	size=200k
+	missingok
+	copytruncate
+	rotate 2
+	compress
+	notifempty
+}

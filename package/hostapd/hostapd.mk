@@ -102,6 +102,17 @@ define HOSTAPD_INSTALL_TARGET_CMDS
 		$(TARGET_DIR)/usr/sbin/hostapd
 	$(INSTALL) -m 0755 -D $(@D)/$(HOSTAPD_SUBDIR)/hostapd_cli \
 		$(TARGET_DIR)/usr/bin/hostapd_cli
+	$(INSTALL) -D -m 755 package/hostapd/hostapd.conf \
+		$(TARGET_DIR)/etc/hostapd/hostapd.conf
+	$(INSTALL) -D -m 755 package/hostapd/hostapd.conf \
+		$(TARGET_DIR)/etc/hostapd/hostapd.default.conf
+endef
+
+define HOSTAPD_INSTALL_INIT_SYSV 
+	$(INSTALL) -D -m 755 package/hostapd/S60hostapd \
+		$(TARGET_DIR)/etc/init.d/S60hostapd
+	$(INSTALL) -D -m 755 package/hostapd/S90multi-role \
+		$(TARGET_DIR)/etc/init.d/S90multi-role
 endef
 
 $(eval $(generic-package))

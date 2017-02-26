@@ -1,0 +1,8 @@
+/tmp/PmxLog  {
+	size=200k
+	missingok
+	copytruncate
+	rotate 2
+	compress
+	notifempty
+}

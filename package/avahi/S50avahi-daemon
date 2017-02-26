@@ -3,16 +3,46 @@
 # avahi-daemon init script
 
 DAEMON=/usr/sbin/avahi-daemon
+
+SerialNumeber=`/usr/local/sbin/getSerialNumber.sh`
+if [ "$SerialNumeber" != ""  ]; then
+	sed -i 's/serialNumber=.*/serialNumber='$SerialNumeber'\<\/txt-record\>/' /etc/avahi/services/web.service
+	sed -i 's/serialNumber=.*/serialNumber='$SerialNumeber'\<\/txt-record\>/' /etc/avahi/services/wd2go.service
+else
+	echo "Serial Number not ready to read."
+fi
 case "$1" in
     start)
+    capacity=`/usr/sbin/get_capacity.sh`
+    case ${capacity} in
+       0)
+       		sed -i 's/modelNumber=.*/modelNumber=WDBLJT\<\/txt-record\>/' /etc/avahi/services/web.service
+			sed -i 's/modelNumber=.*/modelNumber=WDBLJT\<\/txt-record\>/' /etc/avahi/services/wd2go.service
+            ;;
+        1)
+        	sed -i 's/modelNumber=.*/modelNumber=WDBK8Z\<\/txt-record\>/' /etc/avahi/services/web.service
+			sed -i 's/modelNumber=.*/modelNumber=WDBK8Z\<\/txt-record\>/' /etc/avahi/services/wd2go.service
+            ;;
+        2)
+        	sed -i 's/modelNumber=.*/modelNumber=WDBDAF\<\/txt-record\>/' /etc/avahi/services/web.service
+			sed -i 's/modelNumber=.*/modelNumber=WDBDAF\<\/txt-record\>/' /etc/avahi/services/wd2go.service
+            ;;
+        *)
+        	sed -i 's/modelNumber=.*/modelNumber=UnKnown_HDD\<\/txt-record\>/' /etc/avahi/services/web.service
+			sed -i 's/modelNumber=.*/modelNumber=UnKnown_HDD\<\/txt-record\>/' /etc/avahi/services/wd2go.service
+            ;;
+    esac
 	$DAEMON -c || $DAEMON -D
 	;;
     stop)
 	$DAEMON -c && $DAEMON -k
 	;;
-    reload)
-	$DAEMON -c && $DAEMON -r
-	;;
+    reload|restart)
+	#$DAEMON -c && $DAEMON -r
+	$DAEMON -c && $DAEMON -k
+	sleep 2
+	$DAEMON -c || $DAEMON -D
+    ;;
     *)
 	echo "Usage: S50avahi-daemon {start|stop|reload}" >&2
 	exit 1

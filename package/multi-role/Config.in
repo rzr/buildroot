@@ -1,0 +1,9 @@
+config BR2_PACKAGE_MULTI_ROLE
+	bool "multi-role"
+    depends on BR2_PACKAGE_PSKILL 
+    depends on BR2_PACKAGE_WPA_SUPPLICANT
+    depends on BR2_PACKAGE_HOSTAPD
+    depends on BR2_PACKAGE_IPTABLES
+    depends on BR2_PACKAGE_DHCP
+	help
+      Wifi Multi-role mode (STA+AP).

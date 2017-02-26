@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Starts multi-role.
+#
+
+export $(cat /etc/config/wifi-config)
+
+start() {
+    echo -n "Starting multi-role: "
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    /usr/sbin/iptables -t nat -A POSTROUTING -o $STA_IFACE -j MASQUERADE
+    /usr/sbin/wpa_supplicant -d -Dnl80211 -c/etc/wpa_supplicant.conf -i$STA_IFACE -B
+    /sbin/udhcpc -R -b -p /var/run/udhcpc.$STA_IFACE.pid -i $STA_IFACE
+    echo "OK"
+}
+stop() {
+    echo -n "Stopping multi-role: "
+    iptables -t nat -D POSTROUTING -o $STA_IFACE -j MASQUERADE
+    /usr/sbin/pskill.sh wpa_supplicant
+    /usr/sbin/pskill.sh udhcpc
+    echo "OK"
+}
+restart() {
+    stop
+    start
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart|reload)
+        restart
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
+
+exit $?

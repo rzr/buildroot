@@ -1,0 +1,118 @@
+#!/bin/sh
+#
+#
+
+RETVAL=0
+HDSerial=`hdparm -I \`cat /tmp/HDDDevNode\` | sed -n -e 's/.*Serial Number:\(.*\)/\1/p' | sed -e 's/^[ \t]*//' | awk '{gsub("WD-","",$0); print $0}'`
+FStype=`cat /proc/mounts | grep "/media/sdb1 " | cut -d " " -f 3`
+
+start() {
+	if [ ! -d "/etc/updateCounts"  ]; then
+		mkdir -p /etc/updateCounts
+		echo 1 > /etc/updateCounts/alert
+		echo 1 > /etc/updateCounts/data_volume_write
+		echo 1 > /etc/updateCounts/firmware_update
+		echo 1 > /etc/updateCounts/battery
+		echo 1 > /etc/updateCounts/system_state
+		echo 1 > /etc/updateCounts/wifi_ap
+		echo 1 > /etc/updateCounts/wifi_client_connection
+	fi
+
+	echo -n "Starting volume_mount.sh: "
+	/usr/local/sbin/volume_mount.sh mount "$HDSerial"_1 /media/sdb1 `cat /tmp/MountedDevNode` $FStype
+	RETVAL=$?
+	echo "done"
+
+	echo -n "Starting crud_share_db.sh: "
+	#/usr/local/sbin/crud_share_db.sh create Private /etc/samba/smb.conf true
+	#/usr/local/sbin/crud_share_db.sh create Public /etc/samba/smb.conf true
+	/usr/local/sbin/crud_share_db.sh create Public /etc/samba/smb.conf true
+    result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"UserShares\" VALUES('Public'"  | wc -l`
+    if [ $result == "0" ]; then
+        sleep 1
+        /usr/local/sbin/crud_share_db.sh create Public /etc/samba/smb.conf true
+        result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"UserShares\" VALUES('Public'"  | wc -l`
+        if [  $result == "0" ]; then
+            sleep 1
+            /usr/local/sbin/crud_share_db.sh create Public /etc/samba/smb.conf true
+        fi
+        result=`sqlite3 /usr/local/nas/orion/orion.db '.dump' | grep "INSERT INTO \"UserShares\" VALUES('Public'"  | wc -l`
+    fi
+    if [ $result == "1" ]; then 
+        RETVAL2=0
+    else
+        RETVAL2=1
+    fi
+	echo "done"
+
+	/usr/local/sbin/middleware_startup.sh
+
+	smartctl -d sat -s on -S on `cat /tmp/HDDDevNode`
+	#smartd
+	/bin/monitor &
+	#/sbin/SDCard_StorageTransfer.sh &
+	# check firmware upgrade
+	if [ -f "/fwupg"  ]; then
+        /sbin/mptool set gasgauge
+		fwupg=`cat /fwupg`
+		if [ "${fwupg}" == "success" ]; then
+			/usr/local/sbin/sendAlert.sh 2003
+            if [ -d /media/sdb1_fuse/.wd-alert/fwupg_images ]; then
+                rm -Rf /media/sdb1_fuse/.wd-alert/fwupg_images
+            fi
+		fi
+		rm /fwupg
+	fi
+    if [ -d /media/sdb1_fuse ]; then
+        /sbin/hiddenFile /media/sdb1_fuse/.wdmc
+        /sbin/hiddenFile /media/sdb1_fuse/.wd-alert
+        /sbin/hiddenFile /media/sdb1_fuse/.twonkymedia
+    fi
+	[ $RETVAL -eq 0 -a $RETVAL2 -eq 0 ] && touch /tmp/RestAPIReady || \
+	   RETVAL=1
+	return $RETVAL
+}	
+
+stop() {
+	killall monitor
+	killall smartd
+
+	echo -n "Shutting down crud_share_db.sh: "
+	#/usr/local/sbin/crud_share_db.sh delete Private /etc/samba/smb.conf
+	#/usr/local/sbin/crud_share_db.sh delete Public /etc/samba/smb.conf
+    /usr/local/sbin/crud_share_db.sh delete Public /etc/samba/smb.conf
+	RETVAL2=$?
+	echo "done"
+
+	echo -n "Shutting down volume_mount.sh: "
+	/usr/local/sbin/volume_mount.sh unmount "$HDSerial"_1
+	RETVAL=$?
+	echo "done"
+
+    /usr/local/sbin/middleware_shutdown.sh
+
+	[ $RETVAL -eq 0 -a $RETVAL2 -eq 0 ] && rm -f /tmp/RestAPIReady
+	return $RETVAL
+}	
+
+restart() {
+	stop
+	start
+}	
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+  	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

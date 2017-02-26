@@ -1,0 +1,19 @@
+config BR2_PACKAGE_HEIMDAL
+	bool "heimdal"
+	depends on BR2_USE_MMU # fork()
+	depends on BR2_LARGEFILE # e2fsprogs
+	depends on BR2_USE_WCHAR # util-linux for e2fsprogs
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on BR2_TOOLCHAIN_HAS_NATIVE_RPC # rresvport()
+	select BR2_PACKAGE_E2FSPROGS
+	select BR2_PACKAGE_NCURSES
+	select BR2_PACKAGE_SQLITE
+	help
+	  Heimdal is an implementation of Kerberos 5 (and some more stuff).
+
+	  http://www.h5l.org/
+
+comment "heimdal needs a toolchain w/ RPC, wchar, largefile, threads"
+	depends on !BR2_TOOLCHAIN_HAS_THREADS || !BR2_LARGEFILE || \
+		!BR2_USE_WCHAR || !BR2_TOOLCHAIN_HAS_NATIVE_RPC
+	depends on BR2_USE_MMU

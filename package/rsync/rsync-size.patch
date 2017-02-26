@@ -1,0 +1,16 @@
+--- /progress.c	2013-01-20 03:05:53.000000000 +0800
++++ /progress.c	2014-07-28 04:27:24.097899523 +0800
+@@ -70,7 +70,12 @@
+ 	unsigned long diff;
+ 	double rate, remain;
+ 	int pct;
+-
++	/*Jeff.Yao 2014,07,01 echo size {*/
++	FILE *fp1 = NULL; 
++	fp1 = fopen("/tmp/sdsize", "w+");
++	fprintf(fp1,"transferred_size_in_bytes=%lld\n",ofs);
++	fclose(fp1);
++	/*} Jeff.Yao 2014,07,01 echo echo size */
+ 	if (is_last) {
+ 		int len = snprintf(eol, sizeof eol,
+ 			" (xfr#%d, %s-chk=%d/%d)\n",

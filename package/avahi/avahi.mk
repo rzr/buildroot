@@ -80,10 +80,10 @@ AVAHI_CONF_OPT = --localstatedir=/var \
 		--with-distro=none \
 		$(if $(BR2_HAVE_DOCUMENTATION),--enable,--disable)-manpages \
 		$(if $(BR2_PACKAGE_AVAHI_AUTOIPD),--enable,--disable)-autoipd \
-		--with-avahi-user=default \
-		--with-avahi-group=default \
-		--with-autoipd-user=default \
-		--with-autoipd-group=default
+		--with-avahi-user=nobody \
+		--with-avahi-group=nobody \
+		--with-autoipd-user=nobody \
+		--with-autoipd-group=nobody
 
 AVAHI_DEPENDENCIES = $(if $(BR2_NEEDS_GETTEXT_IF_LOCALE),gettext) host-intltool \
        host-pkgconf host-gettext
