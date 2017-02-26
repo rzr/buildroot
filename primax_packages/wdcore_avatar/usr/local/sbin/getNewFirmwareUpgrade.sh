@@ -68,12 +68,12 @@ language="${lang_3ltr:-eng}"
 
 echo "language ${language}" > /etc/languageThreeLetterCode.conf
 
-#serial_number=""
-#[ -f "/etc/nas/.product_improvement_opt_in" ] && serial_number="`getSerialNumber.sh`"
+serial_number=""
+[ -f "/etc/nas/.product_improvement_opt_in" ] && serial_number="`cat /tmp/HDSerial`"
 #serial_number="`getSerialNumber.sh`"
 
 #Modified not to wake HDD
-serial_number="`cat /tmp/HDSerial`"
+#serial_number="`cat /tmp/HDSerial`"
 
 #update_site="http://supportbeta.wdc.com/nas/list.asp"
 # set a timeout of 20 seconds maximum for query

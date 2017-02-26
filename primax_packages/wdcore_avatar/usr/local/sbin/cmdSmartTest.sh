@@ -51,16 +51,36 @@ doSmartCtlTest ()
 case ${cmd} in
     short)
         doSmartCtlTest
-    	;;
+        rm -f /tmp/SMARTDone /tmp/SMARTGood /tmp/ScandiskSetup /tmp/ScandiskSetup /tmp/StartScandisk /tmp/ScandiskProcessing /tmp/ScandiskDone /tmp/ScandiskAborted
+        touch /tmp/StartSMART
+        echo "39;0" > /tmp/MCU_Cmd &
+        exit 0
+        ;;
     long)
         doSmartCtlTest
-    	;;
+        rm -f /tmp/SMARTDone /tmp/SMARTGood /tmp/ScandiskSetup /tmp/ScandiskSetup /tmp/StartScandisk /tmp/ScandiskProcessing /tmp/ScandiskDone /tmp/ScandiskAborted
+        touch /tmp/StartSMART
+        echo "39;0" > /tmp/MCU_Cmd &
+        exit 0
+        ;;
     abort)
         #for drive in "${driveList[@]}"
         #do
     	#    smartctl -X ${drive} > /dev/null
         #done
-        smartctl -d sat -X ${dataVolumeDevice} > /dev/null
+        if [ -f /tmp/StartSMART ]; then
+            smartctl -d sat -X ${dataVolumeDevice} > /dev/null
+            killall monitorchkdisk.sh
+            rm -f /tmp/StartSMART
+        fi
+        if [ -f /tmp/StartScandisk ] || [ -f /tmp/ScandiskSetup ] || [ -f /tmp/ScandiskProcessing ]; then
+            rm -f /tmp/ScandiskSetup
+            rm -f /tmp/StartScandisk
+            rm -f /tmp/ScandiskProcessing
+            rm -f /tmp/ScandiskDone
+            touch /tmp/ScandiskAborted
+        fi
+        exit 0
     	;;
     *)
     	echo "usage: cmdSmartTest.sh <short/long/abort>"

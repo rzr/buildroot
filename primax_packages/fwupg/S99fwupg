@@ -114,10 +114,10 @@ primax_fwupg()
 	newMCU=`cat /tmp/MCU_Version | grep "2\." | wc -l`
 	echo 40 > /sys/class/gpio/export
 	echo 41 > /sys/class/gpio/export
-    echo 89 > /sys/class/gpio/export
+	echo 89 > /sys/class/gpio/export
 	HWID0=`cat /sys/class/gpio/gpio40/value`
 	HWID1=`cat /sys/class/gpio/gpio41/value`
-    HWID2=`cat /sys/class/gpio/gpio89/value`
+	HWID2=`cat /sys/class/gpio/gpio89/value`
 	HWVER=0
 	if [ "$HWID0" == 1 ] && [ "$HWID1" == 1 ]; then
 		HWVER=1
@@ -125,9 +125,9 @@ primax_fwupg()
 	if [ "$HWID0" == 1 ] && [ "$HWID1" == 0 ]; then
 		HWVER=2
 	fi
-    if [ "$HWID0" == 0 ] && [ "$HWID1" == 1 ] && [ "$HWID2" == 1 ]; then
-        HWVER=3
-    fi
+	if [ "$HWID0" == 0 ] && [ "$HWID1" == 1 ] && [ "$HWID2" == 1 ]; then
+		HWVER=3
+	fi
 	killall mcu_daemon
 	sleep 1
 	if [ "$newMCU" == 0 ] && [ "$HWVER" == 0 ]; then

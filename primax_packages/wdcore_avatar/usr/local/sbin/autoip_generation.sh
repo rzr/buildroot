@@ -9,6 +9,16 @@ PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 
 source /etc/nas/config/wifinetwork-param.conf
 DHCPD_CONF_PATH="/etc/dhcpd.conf"
+
+if [ -f "/tmp/WiFiClientApDebugModeEnabledLog" ]; then
+	Debugmode=1
+else
+	Debugmode=0
+fi
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	echo $timestamp ": autoip_generation.sh" $@ >> /tmp/wificlientap.log
+fi
 interface=$1
 
 ReGenerateProfile(){
@@ -18,7 +28,7 @@ RestartService(){
 	sleep 20
 	#/etc/init.d/S50lighttpd restart
 	#/etc/init.d/S80dhcp-server restart
-	/etc/init.d/S92twonkyserver restart
+	#/etc/init.d/S92twonkyserver restart
 	/etc/init.d/S91upnp restart
 	sleep 5
 	/etc/init.d/S50avahi-daemon restart
@@ -64,11 +74,6 @@ if [ ! -f "/tmp/AutoIP_Generation" ]; then
 		
 		connectedmac=`wpa_cli -i wlan0 status | grep -rsw "bssid" | awk -F= '{print $NF}' | tr [:lower:] [:upper:]`
 		connectStatus=`wpa_cli -i wlan0 status | grep -rsi wpa_state | awk -F= '{print $NF}'`
-		if [ $connectedmac == "" ] && [ $connectStatus != "COMPLETED" ]; then
-			rm /tmp/AutoIP_Generation
-			exit 0
-		fi
-		
 		connectedip=`wpa_cli -i wlan0 status | grep -rsw "ip_address" | awk -F= '{print $NF}'`
 		if [ "$connectedip" == "" ]; then
 			/sbin/ifup wlan0
@@ -80,10 +85,15 @@ if [ ! -f "/tmp/AutoIP_Generation" ]; then
 		ApIP=`wifi_ap_get_config.sh | grep "ip=" | awk -F= '{print $2}' | cut -d '"' -f 2 | awk -F. '{print $1"."$2"."$3}'`
 		
 		if [ "$connectedip" == "" ] || [ "$autoIp" == "169.254" ]; then
-			/etc/init.d/S50avahi-daemon stop
-			killall zcip
-			/sbin/zcip wlan0 /etc/zcip.script
-			
+			if [ "$connectedmac" != "" ] && [ "$connectStatus" == "COMPLETED" ]; then
+				if [ "$Debugmode" == "1" ]; then
+					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+					echo $timestamp ": autoip_generation.sh auto ip generation" "$connectedip" "$connectedmac" "$connectStatus" >> /tmp/wificlientap.log
+				fi
+				/etc/init.d/S50avahi-daemon stop
+				killall zcip
+				/sbin/zcip wlan0 /etc/zcip.script
+			fi
 		elif [ "$ApIP" == "$connectedipblock" ]; then
 			Ap_1=`wifi_ap_get_config.sh | grep "ip=" | awk -F= '{print $2}' | cut -d '"' -f 2 | awk -F. '{print $1}'`
 			Ap_2=`wifi_ap_get_config.sh | grep "ip=" | awk -F= '{print $2}' | cut -d '"' -f 2 | awk -F. '{print $2}'`

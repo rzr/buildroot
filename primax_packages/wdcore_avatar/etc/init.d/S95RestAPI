@@ -112,6 +112,11 @@ start() {
 				rm -f /FWupgfromHDD
 				echo "" > /media/sdb1/update/UpdateDone
 			fi
+            if [ -f /FWupgfromInternet ]; then
+                rm -f /FWupgfromInternet
+                rm -f /media/sdb1/.wdcache/updateFile.deb
+                /usr/local/sbin/clearAlerts.sh 2002
+            fi
 		fi
 		rm /fwupg
 	fi

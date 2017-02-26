@@ -28,8 +28,11 @@ case $1 in
     "hddup")
 		    /etc/init.d/S35mdev start;
 		    /etc/init.d/S48initdisk start;
+                    /etc/init.d/S48swapfile start;
 		    /etc/init.d/S50netatalk start;
 		    /etc/init.d/S70vsftpd start;
+		    /etc/init.d/S85wdmcserverd stop;
+		    sleep 1
 		    /etc/init.d/S85wdmcserverd start;
 		    /etc/init.d/S91smb start;
 		    /etc/init.d/S92twonkyserver start;

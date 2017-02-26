@@ -383,7 +383,7 @@ diff -Nur etc/lighttpd/conf.d/webdav.conf etc/lighttpd.wd/conf.d/webdav.conf
 +)  
 +
 +setenv.add-response-header = (
-+        "X-Orion-Version" => "2.4"
++        "X-Orion-Version" => "2.4.1"
 +)
 +
  ##

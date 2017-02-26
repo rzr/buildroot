@@ -10,13 +10,19 @@
 PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 . /etc/nas/config/share-param.conf
 source /etc/nas/config/wifinetwork-param.conf
+if [ -f "/tmp/WiFiClientApDebugModeEnabledLog" ]; then
+	Debugmode=1
+else
+	Debugmode=0
+fi
+
 option_mac=$1
 restartSTA=0
 maclone=false
-
-
-echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${14} ${15} ${16} ${17} ${18} ${19} > /tmp/clientupdate
-
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	echo $timestamp ": wifi_client_ap_update.sh" $@ >> /tmp/wificlientap.log
+fi
 RestartService(){
 	/etc/init.d/S91upnp restart
 }
@@ -92,7 +98,7 @@ while [ "$3" != "" ]; do
 #                                 fi                              
 #                               fi
 #                               ;;
-       --remember )            shift
+       --remember )    shift
                                remember=$3
                                opt_remember=true
                                if [ "$remember" == "true" ]; then
@@ -190,10 +196,10 @@ if [ "$clientDHCP" == "false" ]; then
 	if [ "$clientIp" == "" ] || [ "$clientmask" == "" ]; then
 		exit 6
 	fi
-elif [ "$clientDHCP" == "true" ]; then
-	if [ "$clientIp" != "" ] || [ "$clientmask" != "" ] || [ "$gateway" != "" ] || [ "$dns0" != "" ] || [ "$dns1" != "" ] || [ "$dns2" != "" ]; then
-		exit 6
-	fi
+#elif [ "$clientDHCP" == "true" ]; then
+	#if [ "$clientIp" != "" ] || [ "$clientmask" != "" ] || [ "$gateway" != "" ] || [ "$dns0" != "" ] || [ "$dns1" != "" ] || [ "$dns2" != "" ]; then
+	#	exit 6
+	#fi
 fi
 
 if [ "$maclone" == "true" ]; then
@@ -202,7 +208,7 @@ if [ "$maclone" == "true" ]; then
 	fi
 fi
 
-wifi_client_ap_scan.sh --remembered > /dev/null
+#wifi_client_ap_scan.sh --remembered > /dev/null
 
 if [ "$opt_clone" == "true" ]; then
 	saved_maclone=`grep -rsi "${string_mac}" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="mac_clone_enable="} {print $NF}' | cut -d '"' -f 2`
@@ -231,7 +237,7 @@ if [ "$opt_clone" == "true" ]; then
 fi
 
 if [ "$opt_auto_join" == "true" ]; then
-	saved_auto_join=`grep -rsi "${string_mac}" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="auto_join="} {print $NF}' | cut -d '"' -f 2`
+	saved_auto_join=`grep -rsi "${string_mac}" /etc/nas/config/wifinetwork-remembered.conf | awk 'BEGIN {FS="auto_join="} {print $NF}' | cut -d '"' -f 2`
 	if [ "$auto_join" == "true" ]; then
 		if [ "$saved_auto_join" == "true" ]; then
 			sed -i '/'\"${string_mac}\"'/ s/auto_join="true"./auto_join="true" /' /etc/nas/config/wifinetwork-remembered.conf
@@ -267,8 +273,9 @@ fi
 #	fi 
 #fi
 if [ "$opt_trusted" == "true" ]; then
-	saved_trusted=`grep -rsi "${string_mac}" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="trusted="} {print $NF}' | cut -d '"' -f 2`	
+	saved_trusted=`grep -rsi "${string_mac}" /etc/nas/config/wifinetwork-remembered.conf | awk 'BEGIN {FS="trusted="} {print $NF}' | cut -d '"' -f 2`	
 	if [ "$trusted" == "true" ]; then
+		echo "trusted" > /tmp/ifplugd_trust
 		if [ "$saved_trusted" == "true" ]; then
 			sed -i '/'\"${string_mac}\"'/ s/trusted="true"./trusted="true" /' /etc/nas/config/wifinetwork-remembered.conf
 		else
@@ -289,10 +296,13 @@ if [ "$opt_trusted" == "true" ]; then
 					/usr/sbin/iptables -D INPUT -i wlan0 -p udp --dport 5353 -j DROP
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 548 -j DROP
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 21 -j DROP
+					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 53 -j DROP
+					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 443 -j DROP
 				fi
 			fi
 		fi
 	else
+		echo "untrusted" > /tmp/ifplugd_trust
 		if [ "$saved_trusted" == "true" ]; then
 			sed -i '/'\"${string_mac}\"'/ s/trusted="true"./trusted="false" /' /etc/nas/config/wifinetwork-remembered.conf
 			if [ "$connectStatus" == "COMPLETED" ]; then
@@ -314,6 +324,8 @@ if [ "$opt_trusted" == "true" ]; then
 					/usr/sbin/iptables -D INPUT -i wlan0 -p udp --dport 5353 -j DROP
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 548 -j DROP
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 21 -j DROP
+					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 53 -j DROP
+					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 443 -j DROP
 					
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 80 -j DROP 
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 5353 -j DROP
@@ -326,6 +338,8 @@ if [ "$opt_trusted" == "true" ]; then
 					/usr/sbin/iptables -A INPUT -i wlan0 -p udp --dport 5353 -j DROP
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 548 -j DROP
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 21 -j DROP
+					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 53 -j DROP
+					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 443 -j DROP
 				fi
 			fi
 		else
@@ -362,7 +376,7 @@ if [ "$opt_remember" == "true" ]; then
 				rm /tmp/wifinetwork-remembered_tmp.conf
 				num_remember=`cat /etc/nas/config/wifinetwork-remembered.conf | wc -l`
 				if [ "${num_remember}" == 0 ]; then
-					sed -i 's/STA_CLIENT=.*/STA_CLIENT=false/' /etc/nas/config/wifinetwork-param.conf
+					#sed -i 's/STA_CLIENT=.*/STA_CLIENT=false/' /etc/nas/config/wifinetwork-param.conf
 					sed -i 's/STA_SSID_NAME=.*/STA_SSID_NAME=/' /etc/nas/config/wifinetwork-param.conf
 					sed -i 's/STA_MAC_MAPPING=.*/STA_MAC_MAPPING=/' /etc/nas/config/wifinetwork-param.conf
 					sed -i 's/STA_MAC_ADDRESS=.*/STA_MAC_ADDRESS=/' /etc/nas/config/wifinetwork-param.conf
@@ -371,7 +385,7 @@ if [ "$opt_remember" == "true" ]; then
 					sed -i 's/STA_PSK_KEY=.*/STA_PSK_KEY=/' /etc/nas/config/wifinetwork-param.conf
 					sed -i 's/STA_WEP_KEY=.*/STA_WEP_KEY=/' /etc/nas/config/wifinetwork-param.conf
 				fi
-				
+				sed -i '/'\""${string_mac}"\"'/ s/remembered="true"./remembered="false" /' /tmp/wifinetwork-remembered.conf
 				#cat /etc/nas/config/wifinetwork-remembered.conf > /tmp/wifinetwork-remembered.conf
 				/sbin/wifi-restart UPDATE_STA_CONF 
 				/sbin/wifi-restart STA &
@@ -389,6 +403,7 @@ if [ "$opt_remember" == "true" ]; then
 				sed '/'\""${string_mac}"\"'/d' /etc/nas/config/wifinetwork-remembered.conf > /tmp/wifinetwork-remembered_tmp.conf
 				cat /tmp/wifinetwork-remembered_tmp.conf > /etc/nas/config/wifinetwork-remembered.conf
 				#cat /etc/nas/config/wifinetwork-remembered.conf > /tmp/wifinetwork-remembered.conf
+				sed -i '/'\""${string_mac}"\"'/ s/remembered="true"./remembered="false" /' /tmp/wifinetwork-remembered.conf
 				rm /tmp/wifinetwork-remembered_tmp.conf
 				/sbin/wifi-restart UPDATE_STA_CONF 
 				exit 0

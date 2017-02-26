@@ -123,9 +123,23 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 			echo "18;1;" > /tmp/MCU_Cmd	
 			/usr/local/sbin/incUpdateCount.pm storage_transfer &
 			total_size=`rsync -rv /media/SDcard/ | grep "total size is" | awk '{print $4}' | sed -n 's/,//gp'`
-			sed -i 's/total_size_in_bytes=.*/total_size_in_bytes='${total_size}'/' /tmp/sdsize_total
+            if [ $? -eq 0 ]; then
+			    sed -i 's/total_size_in_bytes=.*/total_size_in_bytes='${total_size}'/' /tmp/sdsize_total
+            else
+                echo "TransferStatus=completed" > /etc/nas/config/sdcard-transfer-status.conf
+                sleep 1
+                echo "18;0;" > /tmp/MCU_Cmd
+                if [ -f /tmp/SDCard_Process_Canceled ]; then
+                    echo "status=canceled" > /tmp/sdstats
+                    rm -f /tmp/SDCard_Process_Canceled
+                else
+                    echo "status=failed" > /tmp/sdstats
+                fi
+                /usr/local/sbin/incUpdateCount.pm storage_transfer &
+                exit 1
+            fi
 			echo "status=running" > /tmp/sdstats			
-			rsync --backup --suffix=_tmparchive -ah --info=progress2  /media/SDcard/* "${SDcard}"/ > /dev/null 2>&1
+			rsync --backup --suffix=_tmparchive -ahP --info=progress2  /media/SDcard/* "${SDcard}"/ > /dev/null 2>&1
 			if [ $? -eq 0 ]; then
 				`rm -rf /media/SDcard/*`
 				`chmod -R 777 "${SDcard}"`
@@ -134,7 +148,12 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 				#echo "SDcard rsync fail !"
 				sleep 1
 				echo "18;0;" > /tmp/MCU_Cmd
-				echo "status=failed" > /tmp/sdstats
+                if [ -f /tmp/SDCard_Process_Canceled ]; then
+                    echo "status=canceled" > /tmp/sdstats
+                    rm -f /tmp/SDCard_Process_Canceled
+                else
+				    echo "status=failed" > /tmp/sdstats
+                fi
 				/usr/local/sbin/incUpdateCount.pm storage_transfer &
 				exit 1
 			fi
@@ -152,17 +171,36 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 			sleep 2
 			echo "18;1;" > /tmp/MCU_Cmd
 			/usr/local/sbin/incUpdateCount.pm storage_transfer &
-			total_size=`rsync -rv /media/SDcard/ | grep "total size is" | awk '{print $4}' | sed -n 's/,//gp'`             
-                        sed -i 's/total_size_in_bytes=.*/total_size_in_bytes='${total_size}'/' /tmp/sdsize_total
+			total_size=`rsync -rv /media/SDcard/ | grep "total size is" | awk '{print $4}' | sed -n 's/,//gp'`
+            if [ $? -eq 0 ]; then
+                sed -i 's/total_size_in_bytes=.*/total_size_in_bytes='${total_size}'/' /tmp/sdsize_total
+            else
+                echo "TransferStatus=completed" > /etc/nas/config/sdcard-transfer-status.conf
+                sleep 1
+                echo "18;0;" > /tmp/MCU_Cmd
+                if [ -f /tmp/SDCard_Process_Canceled ]; then
+                    echo "status=canceled" > /tmp/sdstats
+                    rm -f /tmp/SDCard_Process_Canceled
+                else
+                    echo "status=failed" > /tmp/sdstats
+                fi
+                /usr/local/sbin/incUpdateCount.pm storage_transfer &
+                exit 1
+            fi
 			echo "status=running" > /tmp/sdstats
-			rsync --backup --suffix=_tmparchive -ah --info=progress2  /media/SDcard/* "${SDcard}"/ > /dev/null 2>&1
+			rsync --backup --suffix=_tmparchive -ahP --info=progress2  /media/SDcard/* "${SDcard}"/ > /dev/null 2>&1
 			if [ $? -eq 0 ]; then
 				`chmod -R 777 "${SDcard}"`
 			else
 				echo "TransferStatus=completed" > /etc/nas/config/sdcard-transfer-status.conf
 				sleep 1
 				echo "18;0;" > /tmp/MCU_Cmd
-				echo "status=failed" > /tmp/sdstats
+                if [ -f /tmp/SDCard_Process_Canceled ]; then
+                    echo "status=canceled" > /tmp/sdstats
+                    rm -f /tmp/SDCard_Process_Canceled
+                else
+                    echo "status=failed" > /tmp/sdstats
+                fi
 				/usr/local/sbin/incUpdateCount.pm storage_transfer &
 				exit 1
 			fi    		

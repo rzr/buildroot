@@ -8,7 +8,7 @@
 fs_support1=ntfs
 fs_support2=vfat
 fs_support3=exfat
-
+fs_support4=hfsplus
 
 if [ -f /tmp/CID ]; then
 	vendor=`awk -F"_" '{print $1}' /tmp/CID`
@@ -40,7 +40,7 @@ fi
 if [ "$1" == "SDcard" ]; then
 	SDgpio=`cat /sys/kernel/debug/gpio | grep gpio-27 | awk '{print $5}'`
 	if [ "${SDgpio}" == "lo" ]; then
-			blkid | grep "$3" | grep "${fs_support1}\|${fs_support2}\|${fs_support3}" > /dev/null
+			blkid | grep "$3" | grep "${fs_support1}\|${fs_support2}\|${fs_support3}\|${fs_support4}" > /dev/null
 			if [ "$?" != 0 ]; then
 				/usr/local/sbin/sendAlert.sh 1005 $vendor $model $SN $FS $Label
 			fi
@@ -49,7 +49,7 @@ fi
 
 if [ "$1" == "sdb1_fuse" ]; then
 #check file system of HDD
-	blkid | grep "$3" | grep "${fs_support1}\|${fs_support2}\|${fs_support3}" > /dev/null
+	blkid | grep "$3" | grep "${fs_support1}\|${fs_support2}\|${fs_support3}\|${fs_support4}" > /dev/null
 	if [ "$?" != 0 ]; then
 		/usr/local/sbin/sendAlert.sh 1006
 	fi
@@ -65,7 +65,7 @@ fi
 
 if [ "$1" == "sdb1" ]; then
 #check file system of HDD
-	blkid | grep "$3" | grep "${fs_support1}\|${fs_support2}\|${fs_support3}" > /dev/null
+	blkid | grep "$3" | grep "${fs_support1}\|${fs_support2}\|${fs_support3}\|${fs_support4}" > /dev/null
 	if [ "$?" != 0 ]; then
 		/usr/local/sbin/sendAlert.sh 1006
 	fi

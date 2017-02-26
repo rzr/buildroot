@@ -10,6 +10,11 @@
 PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 . /etc/nas/config/share-param.conf
 source /etc/nas/config/wifinetwork-param.conf
+if [ -f "/tmp/WiFiClientApDebugModeEnabledLog" ]; then
+	Debugmode=1
+else
+	Debugmode=0
+fi
 
 macSetting=0
 confjoin=1
@@ -23,9 +28,10 @@ auto_join=true
 #auto_login=true
 remember=true
 maclone=false
-
-echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19} > /tmp/clientconn
-
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	echo $timestamp ": wifi_client_ap_connect.sh" $@ >> /tmp/wificlientap.log
+fi
 function trans_to_hex {
 	for i in $(echo $1 | sed -e "s/\./ /g"); do  
       	printf '%02x' $i >/dev/null 2>/dev/null < /dev/null
@@ -41,35 +47,42 @@ RemoveWPS() {
 	fi
 }
 
+ErrorCode(){
+	echo "wifi_client_ap_connect.sh --connect <mac>|<ssid> [--security_key <key>] [--security_mode <mode>] \
+[--auto_join true|false] [--remember_network true|false] [--trusted true|false] \
+[--dhcp_enabled true|false] [--ip <ip>] [--netmask <netmask>] [--gateway <gateway> ] \
+[--dns0 <dns0> ] [--dns1 <dns1>] [--dns2 <dns2>][--mac_clone_enable < mac_clone_enable > ] \
+[--clone_mac_address  < clone_mac_address >] | --disconnect <mac> | --pinconnect <wps_pin> --mac <mac> | \
+ --ssid <ssid> [--trusted true|false]"
+
+	if [ "$Debugmode" == "1" ]; then
+		timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+		echo $timestamp ": wifi_client_ap_connect.sh input parameter error" "$1"  >> /tmp/wificlientap.log
+	fi
+	exit 1
+}
+
+if [ $# == 0 ]; then
+	ErrorCode "--All"
+fi
+
+#if [ "$STA_CLIENT" == "false" ]; then 
+#	if [ "$Debugmode" == "1" ]; then
+#		timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+#		echo $timestamp ": wifi_client_ap_connect.sh Wifi client off" >> /tmp/wificlientap.log
+#	fi
+#	exit 1
+#fi
+
 if [ -f /tmp/clientStatus ]; then
 	ApCliStatus=`cat /tmp/clientStatus`
 	if [ "$ApCliStatus" != "0" ] && [ "$ApCliStatus" != "1" ]; then
+		if [ "$Debugmode" == "1" ]; then
+			timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+			echo $timestamp ": wifi_client_ap_connect.sh wlan0 Busy:" "$ApCliStatus" >> /tmp/wificlientap.log
+		fi
 		exit 2
 	fi
-fi
-
-if [ $# == 0 ]; then
-	echo "wifi_client_ap_connect.sh --connect <mac>|<ssid> [ --security_key <key> ][ --security_mode <mode> ] [ --auto_join true | false ] [ --trusted true|false ]\
-[--dhcp_client true|false] [--ip <ip>][--netmask <netmask> ] [--gateway <gateway> ] [--dns0 <dns0> ] [--dns1 <dns1>] [--dns2 <dns2> | --disconnect <mac>\
-| --pinconnect <wps_pin> --mac <mac> | --ssid <ssid> [--trusted true|false]" 
-	exit 1
-fi
-
-enabled=$1
-if [ "${enabled}" == "--enabled" ]; then
-	clientIface=$2	
-	if [ ${clientIface} == "true" ]; then
-		sed -i 's/STA_CLIENT=.*/STA_CLIENT=true/' /etc/nas/config/wifinetwork-param.conf
-		/etc/init.d/S90multi-role restart
-	elif [ ${clientIface} == "false" ]; then
-		sed -i 's/STA_CLIENT=.*/STA_CLIENT=false/' /etc/nas/config/wifinetwork-param.conf
-		/etc/init.d/S90multi-role stop
-		exit 0
-	else
-		exit 1
-	fi
-	shift
-	shift
 fi
 
 
@@ -82,7 +95,16 @@ if [ "$option_connect" == "--connect" ]; then
   
   	RememberAP=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"'`
   	if [ "$RememberAP" != "" ]; then
+  		
   		RememberedConnect=1
+  		cliSignal=`echo ${RememberAP} | awk 'BEGIN{FS="signal_strength=" } {print $NF}' | cut -d '"' -f 2`
+		if [ "$cliSignal" == "0" ]; then
+			if [ "$Debugmode" == "1" ]; then
+  				timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+				echo $timestamp ": wifi_client_ap_connect.sh miss target MAC:" "${string_mac}"  >> /tmp/wificlientap.log
+  			fi
+			exit 2
+		fi  		
   		cli2Ssid=`echo ${RememberAP} | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2`
     	cli2mac=`echo ${RememberAP} | awk 'BEGIN{FS="mac=" } {print $NF}' | cut -d '"' -f 2`
     	cli2join=`echo ${RememberAP} | awk 'BEGIN{FS="auto_join=" } {print $NF}' | cut -d '"' -f 2`
@@ -91,7 +113,7 @@ if [ "$option_connect" == "--connect" ]; then
     	cli2cipher=`echo ${RememberAP} | awk 'BEGIN{FS="security_mode=" } {print $NF}' | cut -d '"' -f 2 | awk -F/ '{print $2}' | awk '{print $1}'`
     	cli2bssid=`echo ${RememberAP} | awk 'BEGIN{FS="bssi\/dmap=" } {print $NF}' | cut -d ' ' -f 1`
     	cli2key=`echo ${RememberAP} | awk 'BEGIN{FS="security_key=" } {print $NF}' | cut -d '"' -f 2` 
-    	
+    	cliremembered=`echo ${RememberAP} | awk 'BEGIN{FS="remembered=" } {print $NF}' | cut -d '"' -f 2`
     	cliDhcp=`echo ${RememberAP} | awk 'BEGIN{FS="dhcp_enabled=" } {print $NF}' | cut -d '"' -f 2`
 		cliip=`echo ${RememberAP} | awk 'BEGIN{FS="ip=" } {print $NF}' | cut -d '"' -f 2`
 		climask=`echo ${RememberAP} | awk 'BEGIN{FS="netmask=" } {print $NF}' | cut -d '"' -f 2`
@@ -111,9 +133,9 @@ if [ "$option_connect" == "--connect" ]; then
        	clientdns1="$clidns1"
        	clientdns2="$clidns2"
        	maclone="$cliclone"
-       	cloneaddr="$clicloneaddr"
+ 		cloneaddr="$clicloneaddr"
  
-    	remember=true
+    	remember="$cliremembered"
     	trusted=$cli2trust
 		auto_join=$cli2join
 		
@@ -122,6 +144,11 @@ if [ "$option_connect" == "--connect" ]; then
        	new_security_mode=$cli2encryptype\\/$cli2cipher
        	ciphertype=$cli2cipher
        	security_key=$cli2key
+       		
+       	if [ "$Debugmode" == "1" ]; then
+  			timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+			echo $timestamp ": wifi_client_ap_connect.sh exist list: ""$cli2Ssid" "$cli2mac" >> /tmp/wificlientap.log
+  		fi
        		
 		if [ "$cli2bssid" == "1" ]; then
 			macSetting=1
@@ -153,8 +180,7 @@ if [ "$option_connect" == "--connect" ]; then
        						   		ChangeNetwork="$3"
         					   		;;
         		--dhcp_enabled )	if [ "$4" != "true" ] && [ "$4" != "false" ]; then
-        								echo "dhcp_enabled error" $4
-        								exit 7
+        								ErrorCode "--dhcp_enabled"
         							else
         								shift
        									clientDHCP="$3"
@@ -166,7 +192,7 @@ if [ "$option_connect" == "--connect" ]; then
        										shift
 										 	clientIp="$3"
 										else
-											exit 7
+											ErrorCode "--ip"
 										fi
 									fi
        								;;
@@ -176,7 +202,7 @@ if [ "$option_connect" == "--connect" ]; then
        										shift
 											clientmask="$3"
 										else 
-											exit 7
+											ErrorCode "--netmask"
 										fi
 									fi
        								;;
@@ -223,7 +249,7 @@ if [ "$option_connect" == "--connect" ]; then
         		--cloned_mac_address )	if [ "$maclone" == "true" ]; then
         								shift
         								if [ "$3" == "" ]; then
-        									exit 9
+        									ErrorCode "--cloned_mac_address"
         								else
         									cloneaddr="$3"
         								fi
@@ -234,17 +260,14 @@ if [ "$option_connect" == "--connect" ]; then
 		done
   	else
   		if [ "$3" == "" ]; then
-			echo "wifi_client_ap_connect.sh --connect <mac>|<ssid> [ --security_key <key> ][ --security_mode <mode> ] [ --auto_join true | false ] [ --trusted true|false ]\
-[--dhcp_client true|false] [--ip <ip>][--netmask <netmask> ] [--gateway <gateway> ] [--dns0 <dns0> ] [--dns1 <dns1>] [--dns2 <dns2> | --disconnect <mac>\
-| --pinconnect <wps_pin> --mac <mac> | --ssid <ssid> [--trusted true|false]" 
-			exit 1
+			ErrorCode "-- Not enough parameter"
 		fi 
 		RememberedConnect=0  	
-  		duplicate=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="mac="} {print $NF}' | cut -d '"' -f 2 | wc -l` 
+  		duplicate=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | awk 'BEGIN {FS="mac="} {print $NF}' | cut -d '"' -f 2 | wc -l` 
   		if [ "$duplicate" == "1" ]; then
-  			macaddr=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="mac="} {print $NF}' | cut -d '"' -f 2` 
+  			macaddr=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | awk 'BEGIN {FS="mac="} {print $NF}' | cut -d '"' -f 2` 
   		else
-  			macaddr=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="mac="} {print $NF}' | cut -d '"' -f 2 | tail -1` 
+  			macaddr=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | awk 'BEGIN {FS="mac="} {print $NF}' | cut -d '"' -f 2 | tail -1` 
   		fi
   	
   		if [ "${string_mac}" ==  "${macaddr}" ]; then
@@ -253,90 +276,88 @@ if [ "$option_connect" == "--connect" ]; then
   		if [ "$macSetting" == "1" ]; then 
   			found_mac=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | wc -l`
   			if [ $found_mac -eq 0 ]; then
+  				if [ "$Debugmode" == "1" ]; then
+  					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+					echo $timestamp ": wifi_client_ap_connect.sh miss target MAC:" "${string_mac}"  >> /tmp/wificlientap.log
+  				fi
   				exit 2
   			fi
   		else
   			found_ssid=`grep -rsw "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | wc -l`
   			if [ $found_ssid -eq 0 ]; then
-  				echo "hidden ssid search"
   				hiddenSsid=1
   			fi
   		fi
   	fi  
   	
 elif [ "$option_connect" == "--disconnect" ]; then
-		string_mac="$2"
-	
-		/usr/local/sbin/wifi_client_ap_scan.sh --remembered > /dev/null
-		saved_connected=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="connected="} {print $NF}' | cut -d '"' -f 2`
-		
-		if [ "$saved_connected" == "true" ]; then
-			FileNum=`cat /etc/nas/config/wifinetwork-remembered.conf | wc -l`
-			sed -i 's/connected="true"./connected="false" /' /etc/nas/config/wifinetwork-remembered.conf
-			#`wpa_cli -i wlan0 disable_network 0 > /dev/null`
-			#/sbin/wifi-restart UPDATE_STA_CONF 
-			/etc/init.d/S90multi-role restart
-			#CurrentRank=`expr $CurrentRank + 1`
-			#if [ "${CurrentRank}" -ge "$FileNum" ]; then
-			#	CurrentRank=0
-			#fi
-			#sed -i 's/STA_CONF_ORDER=.*/STA_CONF_ORDER='${CurrentRank}'/' /etc/nas/config/wifinetwork-param.conf
-			#echo "1" > /tmp/client_disconnect
-			#/usr/local/sbin/wifi_client_trust_mode.sh down &
-			#echo 2 > /tmp/ApCliRetry
-			#/usr/local/sbin/wifi_client_ap_retry.sh 2
-
-			interface=`pidof hostapd`
-			if [ "$interface" == "" ]; then
-				/usr/local/sbin/wifi_ap_set_config.sh --enabled EnabledHomeNetwork 
-			fi			
-			exit 0
-		else
-			#sed -i '/'\"${string_mac}\"'/ s/connected=true./connected=false /' /etc/nas/config/wifinetwork-remembered.conf
-			exit 0
-		fi
+	string_mac="$2"
+	connectMAC=`iwconfig wlan0 | grep "Access Point" | awk '{print $NF}'`	
+	if [ "$Debugmode" == "1" ]; then
+		timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+		echo $timestamp ": wifi_client_ap_connect.sh connected MAC addr:" "$connectMAC" >> /tmp/wificlientap.log
+	fi	
+	if [ "$connectMAC" == "$string_mac" ]; then	
+		sed -i 's/connected="true"./connected="false" /' /tmp/wifinetwork-remembered.conf
+		sed -i 's/connected="true"./connected="false" /' /etc/nas/config/wifinetwork-remembered.conf
+		/sbin/wifi-restart UPDATE_STA_CONF
+		/etc/init.d/S90multi-role restart
+		#echo "1" > /tmp/client_disconnect
+		#/usr/local/sbin/wifi_client_trust_mode.sh down &
+		#echo 2 > /tmp/ApCliRetry
+		#/usr/local/sbin/wifi_client_ap_retry.sh 2
+		interface=`pidof hostapd`
+		if [ "$interface" == "" ]; then
+			/usr/local/sbin/wifi_ap_set_config.sh --enabled EnabledHomeNetwork 
+		fi	
+		wifi_client_ap_scan.sh --remembered signalCHECK > /dev/null		
+		exit 0
+	else
+		#sed -i '/'\"${string_mac}\"'/ s/connected=true./connected=false /' /etc/nas/config/wifinetwork-remembered.conf
+		exit 0
+	fi
 elif [ "$option_connect" == "--pinconnect" ]; then 
-pincode="$2"
-if [ `expr $(echo $pincode | wc -m) - 1` != 8 ]; then
-	exit 7
-fi
+	pincode="$2"
+	if [ `expr $(echo $pincode | wc -m) - 1` != 8 ]; then
+		if [ "$Debugmode" == "1" ]; then
+			timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+			echo $timestamp ": wifi_client_ap_connect.sh WPS PIN Error:" "$pincode" >> /tmp/wificlientap.log
+		fi
+		exit 7
+	fi
 
-ConnectAP=$3
-if [ "$3" == "--ssid" ]; then
-	string_mac="$4"
-elif [ "$3" == "--mac" ]; then
-	string_mac="$4"
-fi
+	ConnectAP=$3
+	if [ "$3" == "--ssid" ]; then
+		string_mac="$4"
+	elif [ "$3" == "--mac" ]; then
+		string_mac="$4"
+	fi
 
-confjoin=2
-echo 2 > /tmp/clientStatus
-macaddr=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="mac="} {print $NF}' | cut -d '"' -f 2 | head -1` 
-if [ "${string_mac}" ==  "${macaddr}" ]; then
-	macSetting=1
-fi
-
-wpsupport=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="wps_mode="} {print $NF}' | cut -d '"' -f 2 | head -1` 
-if [ "$wpsupport" == "false" ]; then
-	echo "WpsNotSupported" > /tmp/WPSpinMethod
-fi
-
-security_mode=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="security_mode=" } {print $NF}' | cut -d '"' -f 2 | head -1`
-security_key=MyPassportWirelessWPSSecurityKeyTEMPoRarily
+	confjoin=2
+	echo 2 > /tmp/clientStatus
+	macaddr=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="mac="} {print $NF}' | cut -d '"' -f 2 | head -1` 
+	if [ "${string_mac}" ==  "${macaddr}" ]; then
+		macSetting=1
+	fi
+	wpsupport=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="wps_mode="} {print $NF}' | cut -d '"' -f 2 | head -1` 
+	if [ "$wpsupport" == "false" ]; then
+		echo "WpsNotSupported" > /tmp/WPSpinMethod
+	fi
+	security_mode=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="security_mode=" } {print $NF}' | cut -d '"' -f 2 | head -1`
+	security_key=MyPassportWirelessWPSSecurityKeyTEMPoRarily
 
 elif [ "$option_connect" == "--PBCconnect" ]; then 
-RemoveWPS
-confjoin=2
-
-hiddenSsid=1
-
-string_mac=MyPassportWirelessPBCSSidTEMP
-securitype=WPAPSK1WPAPSK2
-ciphertype=TKIPAES
-security_mode=WPAPSK1WPAPSK2\/TKIPAES
-security_key=MyPassportWirelessPBCSecurityKeyTEMPoRarily
-trusted=true
+	RemoveWPS
+	confjoin=2
+	hiddenSsid=1
+	string_mac=MyPassportWirelessPBCSSidTEMP
+	securitype=WPAPSK1WPAPSK2
+	ciphertype=TKIPAES
+	security_mode=WPAPSK1WPAPSK2\/TKIPAES
+	security_key=MyPassportWirelessPBCSecurityKeyTEMPoRarily
+	trusted=true
 else 
-	echo "wifi_client_ap_connect.sh --connect <mac>|<ssid> [ --security_key <key> ][ --security_mode <mode> ] [ --auto_join true | false ] [ --trusted true|false ] | --disconnect <mac>" 
+	ErrorCode "-- option_connect error "
 fi
 
 opt_trusted=true
@@ -345,27 +366,26 @@ opt_auto_login=true
 opt_remember=true
 
 if [ "$RememberedConnect" != "1" ]; then
-
-while [ "$3" != "" ]; do
-   case $3 in
-       --security_key  )       shift
+	while [ "$3" != "" ]; do
+   		case $3 in
+       		--security_key  )  shift
                                security_key="$3"
                                
                                ;;
-       --security_mode )       shift
+       		--security_mode )  shift
                                security_mode="$3"
                                ;;
-       --auto_join )           shift
+       		--auto_join )      shift
                                auto_join="$3"
                                opt_auto_join=true
                                if [ "$auto_join" == "true" ]; then
                                	b_auto_join=true
                                else
-                                 if [ "$auto_join" == "false" ]; then
-                               	  b_auto_join=false
-                                 else
-                                 	exit 1
-                                 fi                              
+                               	if [ "$auto_join" == "false" ]; then
+                               		b_auto_join=false
+                                else
+                                 	ErrorCode "--auto_join"
+                                fi                              
                                fi
                                ;;
        #--auto_login )          shift
@@ -390,7 +410,7 @@ while [ "$3" != "" ]; do
                                  if [ "$trusted" == "false" ]; then
                                	  b_trusted=false
                                  else
-                                 	exit 1
+                                 	ErrorCode "--trusted"
                                  fi                              
                                fi
                                ;;
@@ -403,7 +423,7 @@ while [ "$3" != "" ]; do
                                  if [ "$remember" == "false" ]; then
                                	  b_remember=false
                                  else
-                                 	exit 1
+                                 	ErrorCode "--remember_network"
                                  fi
                                fi
                                ;;
@@ -411,19 +431,19 @@ while [ "$3" != "" ]; do
        						   ChangeNetwork="$3"
         					   ;;
        --dhcp_enabled )			if [ "$4" != "true" ] && [ "$4" != "false" ]; then
-        							exit 7
+        							ErrorCode "--dhcp_enabled"
         						else
         							shift
        								clientDHCP="$3"
         						fi
        							;;
-      --ip )					if [ "$clientDHCP" == "false" ]; then
+     	--ip )					if [ "$clientDHCP" == "false" ]; then
       								trans_to_hex "$4"
        								if [ "$?" == 0 ]; then	
       									shift
 									 	clientIp="$3"
 									else
-										exit 7
+										ErrorCode "--ip"
 									fi
 								fi
       							;;
@@ -433,7 +453,7 @@ while [ "$3" != "" ]; do
        									shift
 										clientmask="$3"
 									else 
-										exit 7
+										ErrorCode "--netmask"
 									fi
 								fi
        							;;
@@ -481,7 +501,7 @@ while [ "$3" != "" ]; do
         --cloned_mac_address )	if [ "$maclone" == "true" ]; then
         							shift
         							if [ "$3" == "" ]; then
-        								exit 9
+        								ErrorCode "--cloned_mac_address"
         							else
         								cloneaddr="$3"
         							fi
@@ -502,14 +522,12 @@ done
 ################
 if [ "$clientDHCP" == "false" ]; then
 	if [ "$clientIp" == "" ] && [ "$clientmask" == "" ]; then
-		exit 6
+		ErrorCode "--clientIp --clientmask"
 	fi
 fi
 
 if [ "$security_mode" == "" ]; then
-	echo "wifi_client_ap_connect.sh --connect <mac>|<ssid> [ --security_key <key> ][ --security_mode <mode> ] [ --auto_join true | false ] [ --trusted true|false ]\
-[--dhcp_client true|false] [--ip <ip>][--netmask <netmask> ] [--gateway <gateway> ] [--dns0 <dns0> ] [--dns1 <dns1>] [--dns2 <dns2> | --disconnect <mac>\
-| --pinconnect <wps_pin> --mac <mac> | --ssid <ssid> [--trusted true|false]" 
+	ErrorCode "--security_mode"
 	exit 1
 fi
 
@@ -521,6 +539,10 @@ case $security_mode in
        		security_key=""
            	secure=false
        	else
+       		if [ "$Debugmode" == "1" ]; then
+				timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+				echo $timestamp ": wifi_client_ap_connect.sh OPEN Security with Key:" "$security_key" >> /tmp/wificlientap.log
+			fi
        		exit 6
        	fi
 		;;
@@ -531,7 +553,10 @@ case $security_mode in
     				character=`echo ${security_key} | sed 's/\(.\{1\}\)/\1 /g' | awk -v num=$index '{print $num}'`
     				echo ${character} | grep -q -v '[A-Fa-f0-9]'
     				if [ $? == 0 ]; then
-						#echo "not allowed characters "
+						if [ "$Debugmode" == "1" ]; then
+							timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+							echo $timestamp ": wifi_client_ap_connect.sh WEP Security with Key:" "$security_key" >> /tmp/wificlientap.log
+						fi
 						exit 5
 					fi
     			done
@@ -540,6 +565,10 @@ case $security_mode in
            	key_security_mode=$security_mode
            	new_security_mode=$security_mode
         else
+        	if [ "$Debugmode" == "1" ]; then
+				timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+				echo $timestamp ": wifi_client_ap_connect.sh WEP Security with Key:" "$security_key" >> /tmp/wificlientap.log
+			fi
         	exit 4
         fi
 		;;
@@ -550,6 +579,10 @@ case $security_mode in
 
     	if [ "$securitype" == "WPAPSK" ] || [ "$securitype" == "WPA2PSK" ] || [ "$securitype" == "WPAPSK1WPAPSK2" ]; then
     		if [ "$ciphertype" != "TKIPAES" ] && [ "$ciphertype" != "TKIP" ] && [ "$ciphertype" != "AES" ]; then
+        		if [ "$Debugmode" == "1" ]; then
+					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+					echo $timestamp ": wifi_client_ap_connect.sh Unknown Security" >> /tmp/wificlientap.log
+				fi
         		exit 5
         	fi
         	if [ `expr $(echo $security_key | wc -m) - 1` -ge 8 ] && [ `expr $(echo $security_key | wc -m) - 1` -le 63 ]; then
@@ -557,6 +590,10 @@ case $security_mode in
             	key_security_mode=$securitype
             	new_security_mode=$securitype\\/$ciphertype
         	else
+        		if [ "$Debugmode" == "1" ]; then
+					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+					echo $timestamp ": wifi_client_ap_connect.sh WPA Security with Key:" "$security_key" >> /tmp/wificlientap.log
+				fi
             	exit 4
         	fi
    	 	fi	
@@ -565,35 +602,42 @@ esac
 fi 
 #RememberedConnect
 
-
 if [ "$ChangeNetwork" == "false" ]; then
-    #sleep 4
     echo "executeTrust" > /tmp/executeTrust
 	echo 2 > /tmp/clientStatus
 	
 	if [ "$hiddenSsid" == "1" ]; then
+		if [ "$Debugmode" == "1" ]; then
+			timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+			echo $timestamp ": wifi_client_ap_connect.sh By Ssid Method" >> /tmp/wificlientap.log
+		fi
 		if [ "$securitype" == "NONE" ]; then
 			hidden_secured=false
 		else
 			hidden_secured=true
 		fi
 		
+		if [ "${string_mac}" == "MyPassportWirelessPBCSSidTEMP" ]; then
+			cliwpsenabled=true
+		else
+			cliwpsenabled=false
+		fi
+		
 		if [ "$security_mode" == "NONE" ]; then
-			hiddenProfile="ssid=\""${string_mac}"\" mac=\""00:00:00:00:00:00"\" signal_strength=\""80"\" auto_join=\""$auto_join"\" trusted=\""$trusted"\" security_mode=\""${key_security_mode}"\" connected=\""false"\" remembered=\""true"\" secured=\""${hidden_secured}"\" \
+			hiddenProfile="ssid=\""${string_mac}"\" mac=\""00:00:00:00:00:00"\" signal_strength=\""80"\" auto_join=\""$auto_join"\" trusted=\""$trusted"\" security_mode=\""${key_security_mode}"\" connected=\""false"\" remembered=\""true"\" secured=\""${hidden_secured}"\" wps_enabled="\"${cliwpsenabled}\"" \
 			dhcp_enabled=\""$cliDhcp"\" ip=\""$cliip"\" netmask=\""$climask"\" gateway=\""$cligw"\" dns0=\""$clidns0"\" dns1=\""$clidns1"\" dns2=\""$clidns2"\" mac_clone_enable=\""$maclone"\" cloned_mac_address=\""$cloneaddr"\" bssi/dmap=0 security_key=\"${security_key}\""
 		elif [ "$security_mode" == "WEP" ]; then
-			hiddenProfile="ssid=\""${string_mac}"\" mac=\""00:00:00:00:00:00"\" signal_strength=\""80"\" auto_join=\""$auto_join"\" trusted=\""$trusted"\" security_mode=\""${key_security_mode}"\" connected=\""false"\" remembered=\""true"\" secured=\""${hidden_secured}"\" \
+			hiddenProfile="ssid=\""${string_mac}"\" mac=\""00:00:00:00:00:00"\" signal_strength=\""80"\" auto_join=\""$auto_join"\" trusted=\""$trusted"\" security_mode=\""${key_security_mode}"\" connected=\""false"\" remembered=\""true"\" secured=\""${hidden_secured}"\" wps_enabled="\"${cliwpsenabled}\"" \
 			dhcp_enabled=\""$cliDhcp"\" ip=\""$cliip"\" netmask=\""$climask"\" gateway=\""$cligw"\" dns0=\""$clidns0"\" dns1=\""$clidns1"\" dns2=\""$clidns2"\" mac_clone_enable=\""$maclone"\" cloned_mac_address=\""$cloneaddr"\" bssi/dmap=0 security_key=\"${security_key}\""
 		else
-			hiddenProfile="ssid=\""${string_mac}"\" mac=\""00:00:00:00:00:00"\" signal_strength=\""80"\" auto_join=\""$auto_join"\" trusted=\""$trusted"\" security_mode=\""${securitype}/${ciphertype}"\" connected=\""false"\" remembered=\""true"\" secured=\""${hidden_secured}"\" \
+			hiddenProfile="ssid=\""${string_mac}"\" mac=\""00:00:00:00:00:00"\" signal_strength=\""80"\" auto_join=\""$auto_join"\" trusted=\""$trusted"\" security_mode=\""${securitype}/${ciphertype}"\" connected=\""false"\" remembered=\""true"\" secured=\""${hidden_secured}"\" wps_enabled="\"${cliwpsenabled}\"" \
 			dhcp_enabled=\""$cliDhcp"\" ip=\""$cliip"\" netmask=\""$climask"\" gateway=\""$cligw"\" dns0=\""$clidns0"\" dns1=\""$clidns1"\" dns2=\""$clidns2"\" mac_clone_enable=\""$maclone"\" cloned_mac_address=\""$cloneaddr"\" bssi/dmap=0 security_key=\"${security_key}\""
 		fi
 		
 		echo $hiddenProfile > /tmp/wifinetwork-remembered.conf
 		if [ "$option_connect" == "--connect" ]; then
-			conf_remember=`grep -rsi "\"${clientssid}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"'`
+			conf_remember=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"'`
 			if [ "${conf_remember}" != "" ]; then
-
 				sed '/'\""${string_mac}"\"'/d' /etc/nas/config/wifinetwork-remembered.conf > /tmp/wifinetwork-remembered_tmp.conf
 				echo $hiddenProfile > /etc/nas/config/wifinetwork-remembered.conf
 				cat /tmp/wifinetwork-remembered_tmp.conf >> /etc/nas/config/wifinetwork-remembered.conf	
@@ -602,6 +646,15 @@ if [ "$ChangeNetwork" == "false" ]; then
 		fi
 		ssid_found="${string_mac}"
 	else
+		if [ "$Debugmode" == "1" ]; then
+			timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+			echo $timestamp ": wifi_client_ap_connect.sh By MACaddress Method" >> /tmp/wificlientap.log
+		fi
+		if [ "$duplicate" == "1" ]; then
+			ssid_found=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="ssid="} {print $NF}' | cut -d '"' -f 2`
+		else
+			ssid_found=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="ssid="} {print $NF}' | cut -d '"' -f 2 | tail -1`
+		fi
 		if [ "$opt_trusted" == "true" ]; then
 			saved_trusted=`grep -rsw "\""${string_mac}"\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="trusted="} {print $NF}' | cut -d '"' -f 2 | head -1`
 			if [ "$trusted" == "true" ]; then
@@ -638,82 +691,84 @@ if [ "$ChangeNetwork" == "false" ]; then
 
 		if [ "$opt_remember" == "true" ]; then
 			if [ "$duplicate" == "1" ]; then
-				saved_remember=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="remembered="} {print $NF}' | cut -d ' ' -f 1 | head -1`
+				saved_remember=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="remembered="} {print $NF}' | cut -d '"' -f 2 | head -1`
 			else
-				saved_remember=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="remembered="} {print $NF}' | cut -d ' ' -f 1 | head -1`
+				saved_remember=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="remembered="} {print $NF}' | cut -d '"' -f 2 | head -1`
 			fi
+			
 			if [ "$remember" == "true" ]; then
 				if [ "$saved_remember" == "true" ]; then
 					sed -i '/'\""${string_mac}"\"'/ s/remembered="true"./remembered="true" /' /tmp/scan_result
 				else
 					sed -i '/'\""${string_mac}"\"'/ s/remembered="false"./remembered="true" /' /tmp/scan_result
 				fi
-			
-				if [ "${macSetting}" == 1 ]; then
-					sed -i '/'\""${string_mac}"\"'/ s/bssi\/dmap=0 /bssi\/dmap=1 /' /tmp/scan_result
-				else
-					sed -i '/'\""${string_mac}"\"'/ s/bssi\/dmap=1 /bssi\/dmap=0 /' /tmp/scan_result
-				fi
-				
-				ConfSecurity=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="security_mode="} {print $NF}' | cut -d ' ' -f 1 | head -1`
-				if [ $ConfSecurity == "NONE" ]; then
-					ConfSecurity="NONE"
-				elif [ $ConfSecurity == "WEP" ]; then
-					ConfSecurity="WEP"	
-				else
-					Confsecuritype=`echo ${ConfSecurity} | awk -F/ '{print $1}'`
-					Confciphertype=`echo ${ConfSecurity} | awk -F/ '{print $2}'`
-					ConfSecurity=$Confsecuritype\\/$Confciphertype
-				fi
-				sed -i '/'\""${string_mac}"\"'/ s/security_mode='${ConfSecurity}'./security_mode='\""${new_security_mode}"\"' /' /tmp/scan_result
-		
-				ConfJoin=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="auto_join=" } {print $NF}' | cut -d '"' -f 2 | head -1`	
-				sed -i '/'\""${string_mac}"\"'/ s/auto_join='${ConfJoin}'./auto_join='\""${saved_auto_join}"\"' /' /tmp/scan_result
-				
-				ConfTrust=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="trusted=" } {print $NF}' | cut -d '"' -f 2 | head -1`
-				sed -i '/'\""${string_mac}"\"'/ s/trusted='${ConfTrust}'./trusted='\""${saved_trusted}"\"' /' /tmp/scan_result
-			
-				cat /tmp/scan_result | grep -rsi "\"${string_mac}\"" | grep -v 'signal_strength="0"' > /tmp/wifinetwork-remembered.conf
-				#conf_remember=`grep -rnsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"'| head -1`
-				#if [ "${conf_remember}" != "" ]; then
-				#	lineNum=`echo "$conf_remember" | cut -d ':' -f 1`	
-				#	sed ${lineNum}d /etc/nas/config/wifinetwork-remembered.conf > /tmp/wifinetwork-remembered_tmp.conf
-				#	cat /tmp/wifinetwork-remembered_tmp.conf > /etc/nas/config/wifinetwork-remembered.conf
-					#cat /tmp/scan_result | grep -rsi "\"${string_mac}\"" > /etc/nas/config/wifinetwork-remembered.conf
-					#cat /tmp/wifinetwork-remembered_tmp.conf >> /etc/nas/config/wifinetwork-remembered.conf
-					#rm /tmp/wifinetwork-remembered_tmp.conf
-				#fi
 			else
 				if [ "$saved_remember" == "true" ]; then
 					sed -i '/'\""${string_mac}"\"'/ s/remembered="true"./remembered="false" /' /tmp/scan_result
 				else
 					sed -i '/'\""${string_mac}"\"'/ s/remembered="false"./remembered="false" /' /tmp/scan_result
 				fi
+			fi	
 			
-				if [ "$option_connect" == "--connect" ]; then
-					conf_remember=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | head -1`
-					if [ "${conf_remember}" != "" ]; then
-						sed '/'\""${string_mac}"\"'/d' /etc/nas/config/wifinetwork-remembered.conf > /tmp/wifinetwork-remembered_tmp.conf
-						cat /tmp/wifinetwork-remembered_tmp.conf > /etc/nas/config/wifinetwork-remembered.conf
-						rm /tmp/wifinetwork-remembered_tmp.conf
+			if [ "${macSetting}" == 1 ]; then
+				sed -i '/'\""${string_mac}"\"'/ s/bssi\/dmap=0 /bssi\/dmap=1 /' /tmp/scan_result
+			else
+				sed -i '/'\""${string_mac}"\"'/ s/bssi\/dmap=1 /bssi\/dmap=0 /' /tmp/scan_result
+			fi
+				
+			ConfSecurity=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="security_mode=" } {print $NF}' | cut -d '"' -f 2 | head -1`
+			if [ "$ConfSecurity" == "NONE" ]; then
+				ConfSecurity="NONE"
+			elif [ "$ConfSecurity" == "WEP" ]; then
+				ConfSecurity="WEP"	
+			else
+				Confsecuritype=`echo ${ConfSecurity} | awk -F/ '{print $1}'`
+				Confciphertype=`echo ${ConfSecurity} | awk -F/ '{print $2}'`
+				ConfSecurity=$Confsecuritype\\/$Confciphertype
+			fi
+			sed -i '/'\""${string_mac}"\"'/ s/security_mode='${ConfSecurity}'./security_mode='\""${new_security_mode}"\"' /' /tmp/scan_result
+		
+			ConfJoin=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="auto_join=" } {print $NF}' | cut -d '"' -f 2 | head -1`	
+			sed -i '/'\""${string_mac}"\"'/ s/auto_join='${ConfJoin}'./auto_join='\""${saved_auto_join}"\"' /' /tmp/scan_result
+				
+			ConfTrust=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="trusted=" } {print $NF}' | cut -d '"' -f 2 | head -1`
+			sed -i '/'\""${string_mac}"\"'/ s/trusted='${ConfTrust}'./trusted='\""${saved_trusted}"\"' /' /tmp/scan_result
+			
+			cat /tmp/scan_result | grep -rsi "\"${string_mac}\"" | grep -v 'signal_strength="0"' > /tmp/wifinetwork-remembered.conf
+			#conf_remember=`grep -rnsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"'| head -1`
+			#if [ "${conf_remember}" != "" ]; then
+			#	lineNum=`echo "$conf_remember" | cut -d ':' -f 1`	
+			#	sed ${lineNum}d /etc/nas/config/wifinetwork-remembered.conf > /tmp/wifinetwork-remembered_tmp.conf
+			#	cat /tmp/wifinetwork-remembered_tmp.conf > /etc/nas/config/wifinetwork-remembered.conf
+			#cat /tmp/scan_result | grep -rsi "\"${string_mac}\"" > /etc/nas/config/wifinetwork-remembered.conf
+			#cat /tmp/wifinetwork-remembered_tmp.conf >> /etc/nas/config/wifinetwork-remembered.conf
+			#rm /tmp/wifinetwork-remembered_tmp.conf
+			#fi
+			if [ "$option_connect" == "--connect" ]; then
+				conf_remember=`grep -rsi "\"${ssid_found}\"" /etc/nas/config/wifinetwork-remembered.conf | head -1`
+				if [ "${conf_remember}" != "" ]; then
+					if [ "$Debugmode" == "1" ]; then
+						timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+						echo $timestamp ": wifi_client_ap_connect.sh Replace Target:" >> /tmp/wificlientap.log
+						echo $timestamp ": wifi_client_ap_connect.sh" "$conf_remember" >> /tmp/wificlientap.log
 					fi
+						
+					sed '/'\""${ssid_found}"\"'/d' /etc/nas/config/wifinetwork-remembered.conf > /tmp/wifinetwork-remembered_tmp.conf
+					cat /tmp/wifinetwork-remembered_tmp.conf > /etc/nas/config/wifinetwork-remembered.conf
+					rm /tmp/wifinetwork-remembered_tmp.conf
 				fi
-			fi 
+			fi
 		fi
-		if [ "$duplicate" == "1" ]; then
-			ssid_found=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="ssid="} {print $NF}' | cut -d '"' -f 2`
-		else
-			ssid_found=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="ssid="} {print $NF}' | cut -d '"' -f 2 | tail -1`
-		fi
+		
 		
 		#echo "ssid:\""${ssid_found}"\" Security_mode:${key_security_mode} Security_key:${security_key}" > saveclient
 	fi
 else
-	if [ "$duplicate" == "1" ]; then
-		ssid_found=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="ssid="} {print $NF}' | cut -d '"' -f 2`
-	else
-		ssid_found=`grep -rsi "\"${string_mac}\"" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="ssid="} {print $NF}' | cut -d '"' -f 2 | tail -1`
-	fi
+	#if [ "$duplicate" == "1" ]; then
+	#	ssid_found=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="ssid="} {print $NF}' | cut -d '"' -f 2`
+	#else		
+		ssid_found=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2 | tail -1`
+	#fi
 	cat /etc/nas/config/wifinetwork-remembered.conf | grep -rsi "\"${string_mac}\"" | grep -v 'signal_strength="0"' > /tmp/wifinetwork-remembered.conf
 	
 	if [ -f "/tmp/executeTrust" ]; then
@@ -723,9 +778,6 @@ fi #ChangeNetwork
 #echo "macaddr:"${macaddr}" ssid:\""${ssid_found}"\" Security_mode:${key_security_mode} Security_key:${security_key}" >> /tmp/saveclient
 
 if [ "$ssid_found" != "" ]; then
-#if [ "$ssid_found" == "" ]; then
-	#sed -i 's/STA_SSID_NAME=.*/STA_SSID_NAME='\""${STA_SSID_NAME}"\"'/' /etc/nas/config/wifinetwork-param.conf
-#else
 	OldSsid=${STA_SSID_NAME}
 	NewSsid=${ssid_found}
 	if [ "$OldSsid" != "$NewSsid" ]; then
@@ -751,7 +803,6 @@ if [ "$ssid_found" != "" ]; then
 	sed -i '/STA_SSID_NAME/ s/`/\\`/g' /etc/nas/config/wifinetwork-param.conf
 	sed -i '/STA_SSID_NAME/ s/\\"/"/' /etc/nas/config/wifinetwork-param.conf
 	sed -i '/STA_SSID_NAME/ s/\(.*\)\\"/\1"/' /etc/nas/config/wifinetwork-param.conf	
-	
 fi
 
 if [ "${macSetting}" == "1" ]; then
@@ -806,7 +857,8 @@ else
 fi
 
 sed -i 's/STA_CONF_JOIN=.*/STA_CONF_JOIN='${confjoin}'/' /etc/nas/config/wifinetwork-param.conf
-if [ "$ChangeNetwork" == "true" ]; then
+#if [ "$ChangeNetwork" == "true" ] || [ "$remember" == "false" ]; then
+if [ "$remember" == "false" ]; then
 	sed -i 's/STA_CONF_REMB=.*/STA_CONF_REMB=0/' /etc/nas/config/wifinetwork-param.conf
 else
 	sed -i 's/STA_CONF_REMB=.*/STA_CONF_REMB=1/' /etc/nas/config/wifinetwork-param.conf
@@ -875,9 +927,15 @@ fi
 
 echo ApMode > /tmp/ConnectionMode
 /sbin/wifi-restart STA &
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	profileleft=`cat /tmp/wifinetwork-remembered.conf`
+	echo $timestamp ": wifi_client_ap_connect.sh connect to target Profile " >> /tmp/wificlientap.log
+	echo $timestamp ": wifi_client_ap_connect.sh" "$profileleft" >> /tmp/wificlientap.log
+fi
 exit 0
 elif [ "$option_connect" == "--pinconnect" ]; then 
-sleep 4
+sleep 1
 ScanDHCP=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="dhcp_enabled=" } {print $NF}' | cut -d '"' -f 2 | head -1`
 sed -i '/'\""${string_mac}"\"'/ s/dhcp_enabled='\""${ScanDHCP}"\"'./dhcp_enabled='\""${clientDHCP}"\"' /' /tmp/wifinetwork-remembered.conf
 ScanIp=`grep -rsi "${string_mac}" /tmp/scan_result | grep -v 'signal_strength="0"' | awk 'BEGIN{FS="ip=" } {print $NF}' | cut -d '"' -f 2 | head -1`
@@ -917,6 +975,13 @@ else
 	echo "wps paired device not available" > /tmp/WPSpinMethod
 fi
 echo "22;1;"  > /tmp/MCU_Cmd
+
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	profileleft=`cat /tmp/wifinetwork-remembered.conf`
+	echo $timestamp ": wifi_client_ap_connect.sh connect to targer Profile " >> /tmp/wificlientap.log
+	echo $timestamp ": wifi_client_ap_connect.sh" "$profileleft" >> /tmp/wificlientap.log
+fi
 exit 0
 elif [ "$option_connect" == "--PBCconnect" ]; then 
 #sleep 5
@@ -927,6 +992,12 @@ if [ ! -f "/tmp/scan_result" ]; then
 	/usr/local/sbin/wifi_client_ap_scan.sh > /dev/null
 fi
 wpa_cli -i wlan0 wps_pbc
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	profileleft=`cat /tmp/wifinetwork-remembered.conf`
+	echo $timestamp ": wifi_client_ap_connect.sh connect to targer Profile:" >> /tmp/wificlientap.log
+	echo $timestamp ": wifi_client_ap_connect.sh" "$profileleft" >> /tmp/wificlientap.log
+fi
 exit 0
 fi
 # EOF

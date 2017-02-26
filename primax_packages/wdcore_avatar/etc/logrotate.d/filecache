@@ -2,7 +2,7 @@
 	size=200k
 	missingok
 	copytruncate
-	rotate 2
+	rotate 1
 	compress
 	notifempty
 }

@@ -10,7 +10,7 @@ PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 source /etc/wdcomp.d/wd-nas/temperature-monitor.conf
 
 
-Hd_temp=`smartctl -d sat -A \`cat /tmp/HDDDevNode\` | grep Temperature | awk '{ print $10}'`
+Hd_temp=`cat /tmp/mcuTemperature | awk '{ print $4}'`
 
 if [ ${Hd_temp} -le ${TEMP_T1} ]; then
 	echo "good"
@@ -22,17 +22,3 @@ else
 	echo "unknown"
 fi
 
-#case "`cat $TEMP_STATE`" in
-#$STATE_NORMAL)
-#        echo "good"
-#        ;;
-#$STATE_WARNING)
-#        echo "warn"
-#        ;;
-#$STATE_SHUTDOWN_WARNING | $STATE_SHUTDOWN_IMMEDIATE)
-#        echo "bad"
-#        ;;
-#*)
-#        echo "unknown"
-#        ;;
-#esac

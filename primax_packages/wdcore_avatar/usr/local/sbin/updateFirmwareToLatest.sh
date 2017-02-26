@@ -86,7 +86,9 @@ fi
 if [ -s ${update_file} ]; then
     #ledCtrl.sh LED_EV_FW_UPDATE LED_STAT_IN_PROG
     #send alert for firmware downloaded
+    clearAlerts.sh 2001
     sendAlert.sh 2002
+    echo "" > /FWupgfromInternet
     updateFirmwareFromFile.sh ${update_file} ${CHECK_FILESIZE}
     status=$?
 fi 

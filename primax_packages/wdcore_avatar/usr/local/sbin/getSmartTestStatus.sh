@@ -18,6 +18,9 @@ source /etc/standby.conf
 #bad
 smartTestStatus() 
 {
+if [ ! -f /tmp/StartSMART ] && [ ! -f /tmp/SMARTDone ] && [ ! -f /tmp/SMARTGood ] && \
+[ ! -f /tmp/ScandiskSetup ] && [ ! -f /tmp/StartScandisk ] && [ ! -f /tmp/ScandiskProcessing ] && \
+[ ! -f /tmp/ScandiskDone ] && [ ! -f /tmp/ScandiskAborted ]; then
     smartctl -d sat -c "${1}" | grep "Self-test execution status" | awk '
 BEGIN {
 	FS="(";
@@ -28,19 +31,200 @@ BEGIN {
 		print "good"
 	}
 	else if (code >= 240 && code < 250) {
-		percent = (10-(code - 240)) * 10;
+		percent = (10-(code - 240)) * 5;
 		printf("inprogress %i\n",percent);
 	}
-	else if (code == 25) {
+	else if (code >= 16 && code < 27) {
 		print "aborted"
 	}
 	else {
 		print "bad"
-		system(echo "bad" > /tmp/smart_fail);
+		echo "bad" > /tmp/smart_fail
 		system("sendAlert.sh 0003");
 	}
 }
 '
+    exit 0
+fi
+
+if [ ! -f /tmp/ScandiskSetup ] && [ -f /tmp/StartSMART ] ; then 
+    smartctl -d sat -c "${1}" | grep "Self-test execution status" | awk '
+BEGIN {
+	FS="(";
+}
+{
+	code=int(substr($2, 2, 3));
+        if (code == 0) {
+                print "inprogress 50"
+                system("touch /tmp/ScandiskSetup");
+        }
+	if (code >= 240 && code < 250) {
+		percent = (10-(code - 240)) * 5;
+		printf("inprogress %i\n",percent);
+	}
+	else if (code >= 16 && code < 27) {
+		print "aborted"
+	}
+}
+'
+    exit 0
+fi
+if [ -f /tmp/SMARTDone ] && [ -f /tmp/ScandiskDone ]; then
+    smartctl -d sat -c "${1}" | grep "Self-test execution status" | awk '
+BEGIN {
+        FS="(";
+}
+{
+        code=int(substr($2, 2, 3));
+        if (code == 0) {
+                print "good"
+        }
+        else if (code >= 16 && code < 27) {
+                print "aborted"
+        }
+        else if (code >= 240 && code < 250) {
+                percent = (10-(code - 240)) * 5;
+                printf("inprogress %i\n",percent);
+        }
+        else {
+                print "bad"
+                echo "bad" > /tmp/smart_fail
+                system("sendAlert.sh 0003");
+        }
+}
+'
+    exit 0
+fi
+if [ -f /tmp/ScandiskAborted ]; then
+    echo "aborted"
+    exit 0
+fi
+if [ -f /tmp/ScandiskSetup ]; then
+    echo "inprogress 55"
+    if [ -f /tmp/StartScandisk ]; then
+        rm -f /tmp/ScandiskSetup
+    fi
+    exit 0
+fi
+
+if [ -f /tmp/StartScandisk ]; then
+    echo "inprogress 60"
+    exit 0
+fi
+if [ -f /tmp/ScandiskProcessing ]; then
+    echo "inprogress 75"
+    exit 0
+fi
+if [ -f /tmp/ScandiskDone ]; then
+    echo "inprogress 100"
+    exit 0
+fi
+
+}
+
+smartTestStatus_DRIVE_SPECIFIC() 
+{
+if [ ! -f /tmp/StartSMART ] && [ ! -f /tmp/SMARTDone ] && [ ! -f /tmp/SMARTGood ] && \
+[ ! -f /tmp/ScandiskSetup ] && [ ! -f /tmp/StartScandisk ] && [ ! -f /tmp/ScandiskProcessing ] && \
+[ ! -f /tmp/ScandiskDone ] && [ ! -f /tmp/ScandiskAborted ]; then
+    smartctl -d sat -c "${1}" | grep "Self-test execution status" | awk '
+BEGIN {
+	FS="(";
+}
+{
+	code=int(substr($2, 2, 3));
+	if (code == 0) {
+		print "UNDEFINED:good:"
+	}
+	else if (code >= 240 && code < 250) {
+		percent = (10-(code - 240)) * 5;
+		printf("UNDEFINED:inprogress:%i\n",percent);
+	}
+	else if (code >= 16 && code < 27) {
+		print "UNDEFINED:aborted:"
+	}
+	else {
+		print "UNDEFINED:bad:"
+		echo "bad" > /tmp/smart_fail
+		system("sendAlert.sh 0003");
+	}
+}
+'
+    exit 0
+fi
+
+if [ ! -f /tmp/ScandiskSetup ] && [ -f /tmp/StartSMART ] ; then 
+    smartctl -d sat -c "${1}" | grep "Self-test execution status" | awk '
+BEGIN {
+	FS="(";
+}
+{
+	code=int(substr($2, 2, 3));
+        if (code == 0) {
+                print "UNDEFINED:inprogress:50"
+                system("touch /tmp/ScandiskSetup");
+        }
+	if (code >= 240 && code < 250) {
+		percent = (10-(code - 240)) * 5;
+		printf("UNDEFINED:inprogress:%i\n",percent);
+	}
+	else if (code >= 16 && code < 27) {
+		print "UNDEFINED:aborted:"
+	}
+}
+'
+    exit 0
+fi
+if [ -f /tmp/SMARTDone ] && [ -f /tmp/ScandiskDone ]; then
+    smartctl -d sat -c "${1}" | grep "Self-test execution status" | awk '
+BEGIN {
+        FS="(";
+}
+{
+        code=int(substr($2, 2, 3));
+        if (code == 0) {
+                print "UNDEFINED:good:"
+        }
+        else if (code >= 16 && code < 27) {
+                print "UNDEFINED:aborted:"
+        }
+        else if (code >= 240 && code < 250) {
+                percent = (10-(code - 240)) * 5;
+                printf("UNDEFINED:inprogress:%i\n",percent);
+        }
+        else {
+                print "UNDEFINED:bad:"
+                echo "bad" > /tmp/smart_fail
+                system("sendAlert.sh 0003");
+        }
+}
+'
+    exit 0
+fi
+if [ -f /tmp/ScandiskAborted ]; then
+    echo "UNDEFINED:aborted:"
+    exit 0
+fi
+if [ -f /tmp/ScandiskSetup ]; then
+    echo "UNDEFINED:inprogress:55"
+    if [ -f /tmp/StartScandisk ]; then
+        rm -f /tmp/ScandiskSetup
+    fi
+    exit 0
+fi
+
+if [ -f /tmp/StartScandisk ]; then
+    echo "UNDEFINED:inprogress:60"
+    exit 0
+fi
+if [ -f /tmp/ScandiskProcessing ]; then
+    echo "UNDEFINED:inprogress:75"
+    exit 0
+fi
+if [ -f /tmp/ScandiskDone ]; then
+    echo "UNDEFINED:inprogress:100"
+    exit 0
+fi
 
 }
 

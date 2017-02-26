@@ -101,11 +101,13 @@ if [ -f $configFile ] && [ ! -f /tmp/reset_done ]; then
     if [ -f /usr/local/nas/orion/jobs.db ]; then
         rm -f /usr/local/nas/orion/jobs.db
     fi
-    if [ -f /Cachevolume/.twonkymedia/twonkyserver.ini ]; then
-        rm -f /Cachevolume/.twonkymedia/twonkyserver.ini
-    fi
-    if [ -f /Cachevolume/.twonkymedia/twonky-locations-70.db ]; then
-        rm -f /Cachevolume/.twonkymedia/twonky-locations-70.db
+    if [ -f /CacheVolume/.twonkymedia/twonkyserver.ini ]; then
+        /etc/init.d/S92twonkyserver stop
+        rm -f /CacheVolume/.twonkymedia/twonkyserver.ini
+        rm -f /CacheVolume/.twonkymedia/twonky.dat
+        rm -f /CacheVolume/.twonkymedia/twonky.roles
+        rm -f /CacheVolume/.twonkymedia/twonky.users
+        rm -f /CacheVolume/.twonkymedia/twonky-locations-70.db
     fi
     #if [ -f "/etc/.device_configured" ]; then
     #	rm -f /etc/.device_configured

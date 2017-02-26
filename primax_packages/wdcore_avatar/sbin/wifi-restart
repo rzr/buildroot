@@ -34,25 +34,9 @@ UPNP_SERVICE="/etc/init.d/S91upnp"
 
 source /etc/nas/config/wifinetwork-param.conf
 #source /etc/nas/config/wifinetwork-remembered.conf
+source /etc/system.conf
 
 HostName=`hostname`
-NumberSerial=`/usr/local/sbin/getSerialNumber.sh`
-capacity=`/usr/sbin/get_capacity.sh`
-case ${capacity} in
-        0)
-            NumModel=WDBLJT
-            ;;
-        1)
-            NumModel=WDBK8Z
-            ;;
-        2)
-            NumModel=WDBDAF
-            ;;
-        *)
-            NumModel=UnKnown_HDD
-            ;;
-esac
-
 ReStartMODE=$1
 DelayTime=$2
 
@@ -330,8 +314,9 @@ CHANGE_HOSTAPD_CONFIG()
 ### Change WPA Supplicant Config ###
 CHANGE_WPA_SUPPLICANT_CONFIG()
 {
-	serialNum=`getSerialNumber.sh`
-	
+	#serialNum=`getSerialNumber.sh`
+	serialNum=`cat /tmp/HDSerial`
+	NumModel=${modelNumber}
     sed -i '1,$d' $WPA_SUPPLICANT_PATH
     
     if [ "$STA_CONF_JOIN" == "1" ]; then
@@ -472,7 +457,7 @@ CHANGE_WPA_SUPPLICANT_CONFIG()
             			echo "	pairwise=CCMP"								>> $WPA_SUPPLICANT_PATH
            		 	fi
             		echo "  psk=\"$STA_PSK_KEY\""                           >> $WPA_SUPPLICANT_PATH
-            		echo "  priority=100"                                  	>> $WPA_SUPPLICANT_PATH
+            		echo "  priority=90"                                  	>> $WPA_SUPPLICANT_PATH
             		echo "}"                                                >> $WPA_SUPPLICANT_PATH
     				echo ""                                                	>> $WPA_SUPPLICANT_PATH
             	fi
@@ -509,7 +494,7 @@ CHANGE_WPA_SUPPLICANT_CONFIG()
             			echo "	pairwise=CCMP"								>> $WPA_SUPPLICANT_PATH
             		fi
             		echo "	psk=\"$STA_PSK_KEY\""                           >> $WPA_SUPPLICANT_PATH
-            		echo "  priority=100"                                  	>> $WPA_SUPPLICANT_PATH
+            		echo "  priority=90"                                  	>> $WPA_SUPPLICANT_PATH
             		echo "}"                                                >> $WPA_SUPPLICANT_PATH
             		echo ""                                                	>> $WPA_SUPPLICANT_PATH
             	fi          	
@@ -564,11 +549,23 @@ CHANGE_WPA_SUPPLICANT_CONFIG()
 ### Change WPA Supplicant Config For WPS ###
 CHANGE_WPA_SUPPLICANT_WPS_CONFIG()
 {
+	serialNum=`cat /tmp/HDSerial`
+	NumModel=${modelNumber}
+	
 	sed -i '1,$d' $WPA_SUPPLICANT_PATH
     
 	echo "ctrl_interface=/var/run/wpa_supplicant"			  		>> $WPA_SUPPLICANT_PATH
-	echo "ap_scan=1"			  									>> $WPA_SUPPLICANT_PATH
-   	echo "update_config=1"			  								>> $WPA_SUPPLICANT_PATH
+    echo "config_methods=virtual_display virtual_push_button physical_push_button" >> $WPA_SUPPLICANT_PATH
+    echo "manufacturer=Western Digital Corporation"					>> $WPA_SUPPLICANT_PATH
+    echo "model_name=My Passport Wireless"							>> $WPA_SUPPLICANT_PATH
+    echo "model_number=$NumModel"										>> $WPA_SUPPLICANT_PATH
+    echo "device_name=$HostName"								>> $WPA_SUPPLICANT_PATH
+    echo "serial_number=$serialNum"										>> $WPA_SUPPLICANT_PATH
+    echo "disassoc_low_ack=1"										>> $WPA_SUPPLICANT_PATH
+    echo "bss_expiration_age=60"										>> $WPA_SUPPLICANT_PATH
+    echo "bss_expiration_scan_count=5"										>> $WPA_SUPPLICANT_PATH
+    echo "ap_scan=1"			  									>> $WPA_SUPPLICANT_PATH
+    echo "update_config=1"			  								>> $WPA_SUPPLICANT_PATH
 }
 
 ### Restart Wifi Service ###

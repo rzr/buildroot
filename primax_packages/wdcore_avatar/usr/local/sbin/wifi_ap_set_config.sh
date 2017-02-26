@@ -10,10 +10,20 @@ PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 . /etc/nas/config/share-param.conf
 . /etc/nas/config/wifinetwork-param.conf 2>/dev/null
 
+if [ -f "/tmp/WiFiApDebugModeEnabledLog" ]; then
+	Debugmode=1
+else
+	Debugmode=0
+fi
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	echo $timestamp ": wifi_ap_set_config.sh" $@ >> /tmp/wifiap.log
+fi
 option=$1
 hotspot=$2
 LIMIT_SSID_LEN=32
 borderChannel_L=0
+disconnectime=0
 max_channels=`iwlist wlan0 channel | grep wlan0 | awk -F " " '{print $2}'`
 filter='^[0-9]+$'
 
@@ -26,8 +36,6 @@ RestartService(){
 	/etc/init.d/S50avahi-daemon restart	
 	/etc/init.d/S91upnp restart
 }
-
-echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} > /tmp/APSSID
 
 if [ "$option" != "--enabled" ]; then
 	echo "wifi_ap_set_config.sh --enabled <true | false> [ --ssid <value> ] [ --broadcast <value> ] [ --security_key <value> ] [ --security_mode <value> ] [--channel <value>] [--static_ip <value>] [--subnet_mask <value>] [--network_mode <value>] [--channel_mode <value>]"
@@ -53,15 +61,13 @@ elif [ "$hotspot" == "true" ]; then
 	shift
 	while [ "$2" != "" ]; do
     case $2 in
-        --ssid )                shift
-                                ssid="${2}"
+        --ssid )    shift
+                    ssid="${2}"
         			if [ ${#ssid} -gt ${LIMIT_SSID_LEN} ]; then 
         				#echo "wifi_ap_set_config.sh ssid does not support more than 32 alphanumeric characters."
         				exit 2
         			fi
-        			
         			echo "${ssid}" | grep -q '\"\|\$\|\&\|/\||\|\\'
-					
 					if [ $? == 0 ]; then
 						echo $ssid > /tmp/kkk
 						sed -i 's/\\/\\\\/g' /tmp/kkk
@@ -74,28 +80,8 @@ elif [ "$hotspot" == "true" ]; then
 						ssid=`cat /tmp/kkk`
 						rm /tmp/kkk
 					fi 	
+					disconnectime=1
 					
-					#echo "${ssid}" | grep -q '\"\|\$\|\&'
-					#if [ $? == 0 ]; then
-					#	echo $ssid > /tmp/kkk
-					#	sed -i 's/"/\\"/g' /tmp/kkk
-					#	sed -i 's/\$/\\\$/g' /tmp/kkk
-					#	sed -i 's/&/\\&/g' /tmp/kkk					
-					#	ssid=`cat /tmp/kkk`
-					#fi 	
-				
-						#echo ${ssid} | grep -q '+\|]\|\[\|\"\|\\\|\?\|\$'
-						#if [ $? == 0 ]; then
-							#echo "not allowed characters " >> /tmp/SsidCurrent
-							#	exit 3
-						#fi   
-								
-						#				echo ${ssid} | grep -q '^\\!\|^#\|^;'
-                		#                if [ $? == 0 ]; then
-                		#                	echo "first character not allowed" >> /tmp/SsidCurrent
-                		#                	exit 3
-                		#                fi   							
-                                
                                 ;;
         --broadcast )           shift
                                 broadcast="$2"
@@ -106,6 +92,7 @@ elif [ "$hotspot" == "true" ]; then
                                   if [ "$broadcast" == "false" ]; then
                                 	  b_broadcast=false
                                 	  conf_broadcast=1
+                                	  disconnectime=1
                                   else
                                   	exit 1
                                   fi                              
@@ -130,7 +117,7 @@ elif [ "$hotspot" == "true" ]; then
 									security_key=`cat /tmp/pwd`
 									rm /tmp/pwd
 								fi
-
+								disconnectime=1
                                 ;;
         --security_mode )       shift
                                 security_mode="$2"
@@ -157,12 +144,15 @@ elif [ "$hotspot" == "true" ]; then
                                 #		key_security_mode=$security_mode
                                 #	fi
                                 #fi
+                                disconnectime=1
                                 ;;
    		--ip )       			shift
        							ipaddr="$2"
+       							disconnectime=1
        							;;						
        	--netmask )				shift
        							netmask="$2"
+       							disconnectime=1
        							;;
        	--channel_mode )        shift
        							ChannelMode="$2"
@@ -182,12 +172,12 @@ elif [ "$hotspot" == "true" ]; then
         							exit 1
         						fi 
         						;;  
-        
         --enable_dhcp )			shift
         						dhcp_server="$2"
         						if [ "${dhcp_server}" != "true" ] && [ "${dhcp_server}" != "false" ]; then
         							exit 1
         						fi
+        						disconnectime=1
         						;;						     
         * )                     echo "wifi_ap_set_config.sh --enabled <true | false> [ --ssid <value> ] [ --broadcast <value> ] [ --security_key <value> ] [ --security_mode <value> ] [--channel <value>] [--static_ip <value>] [--subnet_mask <value>] [--network_mode <value>] [--channel_mode <value>]"
                                 exit 1
@@ -431,7 +421,11 @@ if [ "$hotspot" == "true" ]; then
 	#/etc/init.d/S60hostapd restart
 	#/etc/init.d/S60hostapd restart
 	#/etc/init.d/S60hostapd restart
-	/sbin/wifi-restart AP LONGDELAY &
+	if [ "$disconnectime" == "1" ]; then
+		/sbin/wifi-restart AP LONGDELAY &
+	else
+		/sbin/wifi-restart AP &
+	fi
 #	RestartService
 #		/etc/init.d/S60hostapd start
 #	if [ "$AP_DHCPD_ENABLE" == "true" ]; then

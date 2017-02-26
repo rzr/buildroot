@@ -6,9 +6,16 @@
 #
 #
 PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-
 source /etc/nas/config/wifinetwork-param.conf
-
+if [ -f "/tmp/WiFiClientApDebugModeEnabledLog" ]; then
+	Debugmode=1
+else
+	Debugmode=0
+fi
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	echo $timestamp ": wifi_client_ap_connection_status.sh" $@ >> /tmp/wificlientap.log
+fi
 RemoveWPS() {
 	if [ -f "/tmp/clientStatus" ]; then
 		rm /tmp/clientStatus
@@ -22,6 +29,10 @@ RemoveWPS() {
 
 if [ -f "/tmp/WPSpinMethod" ]; then
 	WPStauts=`cat /tmp/WPSpinMethod`
+	if [ "$Debugmode" == "1" ]; then
+		timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+		echo $timestamp ": wifi_client_ap_connection_status.sh" "$WPStauts" >> /tmp/wificlientap.log
+	fi
 	if [ "$WPStauts" == "WpsNotSupported" ]; then
 		RemoveWPS
 		echo "15" \""$WPStauts"\"
@@ -47,6 +58,10 @@ if [ -f "/tmp/WPSpinMethod" ]; then
 	fi
 elif [ -f "/tmp/ClientConnStatus" ]; then
 	ApCliStauts=`cat /tmp/ClientConnStatus`
+	if [ "$Debugmode" == "1" ]; then
+		timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+		echo $timestamp ": wifi_client_ap_connection_status.sh" "$ApCliStauts" >> /tmp/wificlientap.log
+	fi
 	rm /tmp/ClientConnStatus
 	if [ "$ApCliStauts" == "IncorrectKey" ]; then
 		echo "10" \""$ApCliStauts"\"

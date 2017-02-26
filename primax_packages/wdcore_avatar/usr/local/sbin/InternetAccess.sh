@@ -23,15 +23,40 @@ if [ $? == 0 ]; then
 		curl -4 --connect-timeout 5 "http://www.google.com" > /dev/null 2> /dev/null
 		if [ $? != 0 ]; then
 			echo "InternetConnectionFailed"
+			rm -f /tmp/InternetConnection
 			exit 0;
 		fi
 	else
-		/usr/local/sbin/getNewFirmwareUpgrade.sh immediate send_alert > /dev/null 2> /dev/null &
-		/usr/local/sbin/checkAutoUpdate.sh > /dev/null 2> /dev/null &
+		if [ ! -f /tmp/InternetConnection ]; then
+			/usr/local/sbin/getNewFirmwareUpgrade.sh immediate send_alert > /dev/null 2> /dev/null &
+			/usr/local/sbin/checkAutoUpdate.sh > /dev/null 2> /dev/null &
+			date +%s > /tmp/InternetConnection
+		else
+			now_time=`date "+%s"`
+			start_time=`cat /tmp/InternetConnection`
+			time_diff=`expr $now_time - $start_time`
+			if [ "$time_diff" -gt "3600" ]; then
+				/usr/local/sbin/getNewFirmwareUpgrade.sh immediate send_alert > /dev/null 2> /dev/null &
+				/usr/local/sbin/checkAutoUpdate.sh > /dev/null 2> /dev/null &
+				date +%s > /tmp/InternetConnection
+			fi
+		fi
 	fi
 else
-	/usr/local/sbin/getNewFirmwareUpgrade.sh immediate send_alert > /dev/null 2> /dev/null &
-	/usr/local/sbin/checkAutoUpdate.sh > /dev/null 2> /dev/null &
+	if [ ! -f /tmp/InternetConnection ]; then
+		/usr/local/sbin/getNewFirmwareUpgrade.sh immediate send_alert > /dev/null 2> /dev/null &
+		/usr/local/sbin/checkAutoUpdate.sh > /dev/null 2> /dev/null &
+		date +%s > /tmp/InternetConnection
+	else
+		now_time=`date "+%s"`
+		start_time=`cat /tmp/InternetConnection`
+		time_diff=`expr $now_time - $start_time`
+		if [ "$time_diff" -gt "3600" ]; then
+			/usr/local/sbin/getNewFirmwareUpgrade.sh immediate send_alert > /dev/null 2> /dev/null &
+			/usr/local/sbin/checkAutoUpdate.sh > /dev/null 2> /dev/null &
+			date +%s > /tmp/InternetConnection
+		fi
+	fi
 fi
 
 #---------------------

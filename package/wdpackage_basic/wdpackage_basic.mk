@@ -1,5 +1,5 @@
-WDPACKAGE_BASIC_VERSION = 0.01.90
-WDPACKAGE_BASIC_RELEASE_DATE = 2014-08-01
+WDPACKAGE_BASIC_VERSION = 0.01.105
+WDPACKAGE_BASIC_RELEASE_DATE = 2014-09-19
 WDPACKAGE_BASIC_SITE_METHOD = local
 WDPACKAGE_BASIC_SITE = $(TOPDIR)/primax_packages/wdcore_avatar
 
@@ -46,7 +46,10 @@ define WDPACKAGE_BASIC_INSTALL_TARGET_CMDS
 		$(TARGET_DIR)/etc/version
 
 	cp -a package/wdpackage_basic/version $(TARGET_DIR)/etc/
-	cp -a package/wdpackage_basic/version.packages $(TARGET_DIR)/etc/
+	[ -f $(TARGET_DIR)/etc/version.packages ] || \
+		$(INSTALL) -D -m 755 package/wdpackage_basic/version.packages \
+		$(TARGET_DIR)/etc/version.packages
+	
 	sed -i 's/PMXAC_.*/PMXAC_'$(WDPACKAGE_BASIC_VERSION):$(WDPACKAGE_BASIC_RELEASE_DATE)'/' $(TARGET_DIR)/etc/version.packages
 
 endef

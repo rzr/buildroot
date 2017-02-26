@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# � 2010 Western Digital Technologies, Inc. All rights reserved.
+# � 2014 Western Digital Technologies, Inc. All rights reserved.
 #
 # getSystemLog.sh  <option>
 #
@@ -35,24 +35,47 @@ mkdir -p /CacheVolume/${logname}/current_config/CacheVolume
 mkdir -p /CacheVolume/${logname}/current_config/shares
 mkdir -p /CacheVolume/${logname}/current_status
 
-cp -a /var/log /CacheVolume/${logname}
+cp -a /var/log/*.log /CacheVolume/${logname}
+cp -a /var/log/cronlog /CacheVolume/${logname}
+cp -a /var/log/maillog /CacheVolume/${logname}
+cp -a /var/log/messages /CacheVolume/${logname}
+cp -a /var/log/rsysmessages /CacheVolume/${logname}
+cp -a /CacheVolume/.twonkymedia/*.txt /CacheVolume/${logname}
+cp -a /CacheVolume/.wd-alert/wd-alert.db /CacheVolume/${logname}
+
+# collect current status
+cp -a /tmp/ApCliRetry /CacheVolume/${logname}/current_status
+cp -a /tmp/ConnectionMode /CacheVolume/${logname}/current_status
+cp -a /tmp/CurrentChannel /CacheVolume/${logname}/current_status
+cp -a /tmp/HDDDevNode /CacheVolume/${logname}/current_status
+cp -a /tmp/HDSerial /CacheVolume/${logname}/current_status
+cp -a /tmp/HddPercent /CacheVolume/${logname}/current_status
+cp -a /tmp/MountedDevNode /CacheVolume/${logname}/current_status
+cp -a /tmp/SDDevNode /CacheVolume/${logname}/current_status
+cp -a /tmp/TmpfsPercent /CacheVolume/${logname}/current_status
+cp -a /tmp/Volumes.xml /CacheVolume/${logname}/current_status
+cp -a /tmp/WPStatus /CacheVolume/${logname}/current_status
+cp -a /tmp/apclientnum /CacheVolume/${logname}/current_status
+cp -a /tmp/battery /CacheVolume/${logname}/current_status
+cp -a /tmp/batterymV /CacheVolume/${logname}/current_status
+cp -a /tmp/mcuTemperature /CacheVolume/${logname}/current_status
+cp -a /tmp/sdsize /CacheVolume/${logname}/current_status
+cp -a /tmp/sdsize_total /CacheVolume/${logname}/current_status
+cp -a /tmp/sdstats /CacheVolume/${logname}/current_status
+
 getCurrentFirmwareDesc.sh > /CacheVolume/${logname}/version_info
+cp -a /etc/version.packages /CacheVolume/${logname}/version_package_info
 if [ -f /CacheVolume/update.log ]; then
 	cp /CacheVolume/update.log /CacheVolume/${logname}
 fi
 
-#Get list of drives
-#drive=/dev/sdb
 drive=`cat /tmp/HDDDevNode`
-#driveList=(`internalDrives`)
-#for drive in "${driveList[@]}"
-#do
-    smartctl -d sat -a ${drive} >> /CacheVolume/${logname}/smart_info
-    hdparm -I ${drive} >> /CacheVolume/${logname}/hdparm_info
-#done
+smartctl -d sat -a ${drive} >> /CacheVolume/${logname}/smart_info
+hdparm -I ${drive} >> /CacheVolume/${logname}/hdparm_info
 
 # get current  configuration
 copySaveSettingsToDir.sh /CacheVolume/${logname}/current_config
+cat /etc/saveconfigfiles.txt | xargs tar cvf /CacheVolume/${logname}/current_config/saveconfigfiles.tar
 #cp -a /CacheVolume/.orion /CacheVolume/${logname}/current_config/CacheVolume/
 #cp -a /CacheVolume/WDPROT /CacheVolume/${logname}/current_config/CacheVolume/
 #cp -a /CacheVolume/.mediacrawler /CacheVolume/${logname}/current_config/CacheVolume/
@@ -85,6 +108,7 @@ ifconfig > /CacheVolume/${logname}/current_status/ifconfig_output
 #tracert www.wd2go.com > /CacheVolume/${logname}/current_status/traceroute-wd2go.com.txt
 
 cp /root/.bash_history /CacheVolume/${logname}/bash_history
+cp /home/root/.ash_history /CacheVolume/${logname}/ash_history
 #find / -mount -type f -newer /etc/version -print > /CacheVolume/${logname}/changed_file_list_since_update 
 #cp /etc/cs_case_number /CacheVolume/${logname}/
 

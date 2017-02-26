@@ -18,10 +18,33 @@ ApSignalTarget1=0
 checkloop=0
 ConnectRetry=`cat /tmp/ApCliRetry`
 
+if [ -f "/tmp/WiFiClientApDebugModeEnabledLog" ]; then
+	Debugmode=1
+else
+	Debugmode=0
+fi
+
+if [ "$Debugmode" == "1" ]; then
+	timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+	echo $timestamp ": wifi_client_ap_retry.sh" $@ >> /tmp/wificlientap.log
+fi
+
+if [ "$STA_CLIENT" == "false" ]; then
+	if [ "$Debugmode" == "1" ]; then
+		timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+		echo $timestamp ": wifi_client_ap_retry.sh Client Turn OFF" >> /tmp/wificlientap.log
+	fi
+	exit 3
+fi
+
 if [ "$Retry_ct" -ge 2 ]; then
 	if [ -f /tmp/clientStatus ]; then
 		ApCliStatus=`cat /tmp/clientStatus`
 		if [ "$ApCliStatus" != "0" ]; then
+			if [ "$Debugmode" == "1" ]; then
+				timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+				echo $timestamp ": wifi_client_ap_retry.sh wlan0 Busy:" "$ApCliStatus" >> /tmp/wificlientap.log
+			fi
 			exit 2
 		fi
 	fi
@@ -33,12 +56,13 @@ if [ "$Retry_ct" -ge 2 ]; then
 		LimitRetry=1
 	fi
 	
-	NewRank=$CurrentRank
-	#echo "CurrentRank" $CurrentRank >> /tmp/clientdebug
-	
+	NewRank=$CurrentRank	
 	if [ -f "/tmp/ClientConnStatus" ]; then
 		ApCliStauts=`cat /tmp/ClientConnStatus`
-		echo "Wrong password" $ApCliStauts >> /tmp/clientdebug
+		if [ "$Debugmode" == "1" ]; then
+			timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+			echo $timestamp ": wifi_client_ap_retry.sh Wrong password:" "$ApCliStauts" >> /tmp/wificlientap.log
+		fi
 		if [ ! -f "/tmp/CliKeyRetry" ]; then
 			keytry=0
 			echo $keytry > /tmp/CliKeyRetry 
@@ -56,8 +80,6 @@ if [ "$Retry_ct" -ge 2 ]; then
 				NewRank=0
 			fi
 			sed -i 's/STA_CONF_ORDER=.*/STA_CONF_ORDER='${NewRank}'/' /etc/nas/config/wifinetwork-param.conf
-			#echo "NewRank" $NewRank >> /tmp/clientdebug
-			
 			ConnectRetry=0
 			echo $ConnectRetry > /tmp/ApCliRetry 
 			echo "client_disconnect" > /tmp/client_disconnect
@@ -73,30 +95,42 @@ if [ "$Retry_ct" -ge 2 ]; then
 	else
 		RetryLimit=1
 		if [ "$FileNum" -gt "1" ]; then
-			#`/usr/local/sbin/wifi_client_ap_scan.sh --remembered signalConnect > /tmp/RememberNetwork1`
+			`/usr/local/sbin/wifi_client_ap_scan.sh --remembered signalConnect > /tmp/RememberNetwork1`
 			cat /tmp/RememberNetwork1 | while read ConnectProfile
 			do
 				if [ "$loop" == "$NewRank" ]; then		
 					echo $ConnectProfile > /tmp/TargetConnectAP
-					echo "ConnectProfile" $ConnectProfile >> /tmp/clientdebug
+					if [ "$Debugmode" == "1" ]; then
+						timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+						echo $timestamp ": wifi_client_ap_retry.sh Target Profile:" >> /tmp/wificlientap.log
+						echo $timestamp ": wifi_client_ap_retry.sh" "$ConnectProfile" >> /tmp/wificlientap.log
+					fi
 					ApSignalTarget1=`echo "$ConnectProfile" | awk 'BEGIN{FS=" signal_strength=" }{print $2}' | cut -d '"' -f 2`
 					echo $ApSignalTarget1 > /tmp/ApSignalTarget1
+					ApSsidTarget1=`echo "${ConnectProfile}" | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2`
+					echo $ApSsidTarget1 > /tmp/ApSsidTarget1
+					sed -i 's/"/\1/' /tmp/ApSsidTarget1	
+					sed -i 's/\(.*\)\"/\1/' /tmp/ApSsidTarget1
+					ApSsidTarget1=`cat /tmp/ApSsidTarget1`
 				fi
 				loop=`expr $loop + 1`
 			done
 			ApSignalTarget1=`cat /tmp/ApSignalTarget1`
 			rm /tmp/ApSignalTarget1
-		
-			if [ ! -f "/tmp/ConnectionLoop" ]; then
-				echo "0" > /tmp/ConnectionLoop
+			ApSsidTarget1=`cat /tmp/ApSsidTarget1`
+			rm /tmp/ApSignalTarget1
+			#if [ ! -f "/tmp/ConnectionLoop" ]; then
+			#	echo "0" > /tmp/ConnectionLoop
 				actionloop=0
-			else 
-				actionloop=`cat /tmp/ConnectionLoop`
-			fi
+			#else 
+			#	actionloop=`cat /tmp/ConnectionLoop`
+			#fi
 			cat /tmp/RememberNetwork1 | sort -t '"' -k 6 -r -n > /tmp/RememberNetwork
+			matchssid=`grep -rsnw \""${ApSsidTarget1}"\" /tmp/RememberNetwork`
+			actionloop=`echo "$matchssid" | cut -d ':' -f 1`
 			cat /tmp/RememberNetwork | while read RemProfile
 			do
-				if [ "$checkloop" == "$actionloop" ]; then
+				if [ "$checkloop" -lt "$actionloop" ]; then
 					ApSsidTarget2=`echo ${RemProfile} | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2`
 					ApSignalTarget2=`echo "$RemProfile" | awk 'BEGIN{FS=" signal_strength=" }{print $2}' | cut -d '"' -f 2`
 					ApJoinTarget2=`echo ${RemProfile} | awk 'BEGIN{FS="auto_join=" } {print $NF}' | cut -d '"' -f 2`
@@ -111,7 +145,12 @@ if [ "$Retry_ct" -ge 2 ]; then
 						if [ "$diffSignal" -gt "10" ]; then
 							#echo "ApSsidTarget2" $ApSsidTarget2
 							echo $RemProfile > /tmp/TargetConnectAP
-							echo "Change RemProfile" $RemProfile >> /tmp/clientdebug
+							if [ "$Debugmode" == "1" ]; then
+								timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+								echo $timestamp ": wifi_client_ap_retry.sh Singal:" "$ApSsidTarget2" "$ApSignalTarget2" "${ApSsidTarget1}" "$ApSignalTarget1" >> /tmp/wificlientap.log
+								echo $timestamp ": wifi_client_ap_retry.sh Change Target Profile:" >> /tmp/wificlientap.log
+								echo $timestamp ": wifi_client_ap_retry.sh" "$RemProfile" >> /tmp/wificlientap.log
+							fi
 							#cat /tmp/TargetConnectAP > /tmp/wifinetwork-remembered.conf
 							ConnectRetry=0
 							echo $ConnectRetry > /tmp/ApCliRetry 	
@@ -121,7 +160,7 @@ if [ "$Retry_ct" -ge 2 ]; then
 							if [ "${checkloop}" -ge "$FileNum" ]; then
 								checkloop=0
 							fi
-							echo "$checkloop" > /tmp/ConnectionLoop
+							#echo "$checkloop" > /tmp/ConnectionLoop
 							break
 						fi
 					fi
@@ -153,7 +192,8 @@ if [ "$Retry_ct" -ge 2 ]; then
 				clidns2=`echo ${lineProfile} | awk 'BEGIN{FS="dns2=" } {print $NF}' | cut -d '"' -f 2`
 				cliclone=`echo ${lineProfile} | awk 'BEGIN{FS="mac_clone_enable=" } {print $NF}' | cut -d '"' -f 2`
 				clicloneaddr=`echo ${lineProfile} | awk 'BEGIN{FS="cloned_mac_address=" } {print $NF}' | cut -d '"' -f 2`
-			
+				cliremembered=`echo ${lineProfile} | awk 'BEGIN{FS="remembered=" } {print $NF}' | cut -d '"' -f 2`
+				
 				echo "${cli2Ssid}" | grep -q '\"\|\$\|\&\|/\||\|\\'
 				if [ $? == 0 ]; then
 					echo $cli2Ssid > /tmp/clientssid
@@ -207,80 +247,89 @@ if [ "$Retry_ct" -ge 2 ]; then
 					fi
 				fi
 				
-				if [ "$cli2join" == "true" ] || [ "$TempConnect" == "1" ]; then
-					if [ "$cli2bssid" == "1" ]; then
-						#sleep 5
-						if [ "$TempConnect" == "1" ]; then
-							if [ "$cli2encryptype" == "NONE" ]; then
+				if [ "$cli2join" == "true" ]; then
+					if [ "$cliremembered" == "true" ] || [ "$TempConnect" == "1" ]; then
+						if [ "$STA_CLIENT" == "false" ]; then
+							if [ "$Debugmode" == "1" ]; then
+								timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+								echo $timestamp ": wifi_client_ap_retry.sh Client Turn OFF" >> /tmp/wificlientap.log
+							fi
+							exit 3
+						fi
+						if [ "$cli2bssid" == "1" ]; then
+							#sleep 5
+							if [ "$TempConnect" == "1" ]; then
+								if [ "$cli2encryptype" == "NONE" ]; then
 								execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect \"$cli2mac\" --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" \
 								--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							elif [ "$cli2encryptype" == "WEP" ]; then
+								elif [ "$cli2encryptype" == "WEP" ]; then
 							 	execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect \"$cli2mac\" --security_key \"$cli2key\" --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" \
 							 	--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							else
+								else
 								execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect \"$cli2mac\" --security_key \"$cli2key\" --security_mode \"$cli2encryptype/$cli2cipher\" --auto_join true --trusted \"$cli2trust\" \
 								--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							fi
-							echo "execmd" $execmd >> /tmp/clientdebug
-							if [ ! -f /tmp/clientStatus ]; then
+								fi
+								if [ ! -f /tmp/clientStatus ]; then
 								eval $execmd
-							fi
-							
-						else
-							if [ "$cli2encryptype" == "NONE" ]; then
+								fi
+							else
+								if [ "$cli2encryptype" == "NONE" ]; then
 								execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect \"$cli2mac\" --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" --change_network true \
 								--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							elif [ "$cli2encryptype" == "WEP" ]; then
+								elif [ "$cli2encryptype" == "WEP" ]; then
 							 	execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect \"$cli2mac\" --security_key \"$cli2key\" --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" --change_network true \
 							 	--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							else
+								else
 								execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect \"$cli2mac\" --security_key \"$cli2key\" --security_mode \"$cli2encryptype/$cli2cipher\" --auto_join true --trusted \"$cli2trust\" --change_network true \
 								--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
+								fi
+								if [ ! -f /tmp/clientStatus ]; then
+									eval $execmd
+								fi
 							fi
-							echo "execmd" $execmd >> /tmp/clientdebug
-							if [ ! -f /tmp/clientStatus ]; then
-								eval $execmd
-							fi
-						fi
-					else
-						#sleep 5
-						if [ "$TempConnect" == "1" ]; then
-							if [ "$cli2encryptype" == "NONE" ]; then
-								execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" \
-								--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							elif [ "$cli2encryptype" == "WEP" ]; then
-							 	execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_key \"$cli2key\" --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" \
-							 	--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							else
-								execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_key \"$cli2key\" --security_mode \"$cli2encryptype/$cli2cipher\" --auto_join true --trusted \"$cli2trust\" \
-								--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							fi
-							echo "execmd" $execmd >> /tmp/clientdebug
-							if [ ! -f /tmp/clientStatus ]; then
-								eval $execmd
-							fi
-							
 						else
-							if [ "$cli2encryptype" == "NONE" ]; then
-								execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" --change_network true \
-								--dhcp_enabled $cliDhcp --ip $cliip --mask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							elif [ "$cli2encryptype" == "WEP" ]; then
-							 	execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_key \"$cli2key\" --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" --change_network true \
-							 	--dhcp_enabled $cliDhcp --ip $cliip --mask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
+							#sleep 5
+							if [ "$TempConnect" == "1" ]; then
+								if [ "$cli2encryptype" == "NONE" ]; then
+									execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" \
+									--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
+								elif [ "$cli2encryptype" == "WEP" ]; then
+							 		execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_key \"$cli2key\" --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" \
+							 		--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
+								else
+									execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_key \"$cli2key\" --security_mode \"$cli2encryptype/$cli2cipher\" --auto_join true --trusted \"$cli2trust\" \
+									--dhcp_enabled $cliDhcp --ip $cliip --netmask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
+								fi
+								if [ ! -f /tmp/clientStatus ]; then
+									eval $execmd
+								fi
+							
 							else
-								execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_key \"$cli2key\" --security_mode \"$cli2encryptype/$cli2cipher\" --auto_join true --trusted \"$cli2trust\" --change_network true \
-								--dhcp_enabled $cliDhcp --ip $cliip --mask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
-							fi
-							echo "execmd" $execmd >> /tmp/clientdebug
-							if [ ! -f /tmp/clientStatus ]; then
-								eval $execmd
+								if [ "$cli2encryptype" == "NONE" ]; then
+									execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" --change_network true \
+									--dhcp_enabled $cliDhcp --ip $cliip --mask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
+								elif [ "$cli2encryptype" == "WEP" ]; then
+							 		execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_key \"$cli2key\" --security_mode \"$cli2encryptype\" --auto_join true --trusted \"$cli2trust\" --change_network true \
+							 		--dhcp_enabled $cliDhcp --ip $cliip --mask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
+								else
+									execmd="/usr/local/sbin/wifi_client_ap_connect.sh --connect $cli2Ssid --security_key \"$cli2key\" --security_mode \"$cli2encryptype/$cli2cipher\" --auto_join true --trusted \"$cli2trust\" --change_network true \
+									--dhcp_enabled $cliDhcp --ip $cliip --mask $climask --gateway $cligw --dns0 $clidns0 --dns1 $clidns1 --dns2 $clidns2 --mac_clone_enable $cliclone --cloned_mac_address $clicloneaddr"
+								fi
+								if [ ! -f /tmp/clientStatus ]; then
+									eval $execmd
+								fi
 							fi
 						fi
+					
+						if [ "$Debugmode" == "1" ]; then
+							timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+							echo $timestamp ": wifi_client_ap_retry.sh retry connect:" >> /tmp/wificlientap.log
+							echo $timestamp ": wifi_client_ap_retry.sh" "$execmd" >> /tmp/wificlientap.log
+						fi
+						break
 					fi
-					break
 				else
 					NoAJoinCt=`expr $NoAJoinCt + 1`
-					echo "NoAJoinCt" $NoAJoinCt >> /tmp/clientdebug
 					NewRank=`expr $NewRank + 1`
 					if [ "${NewRank}" -gt "$FileNum" ]; then
 						NewRank=0
@@ -289,9 +338,7 @@ if [ "$Retry_ct" -ge 2 ]; then
 					/sbin/wifi-restart STA &
 				fi		
 		done
-		
 		if [ "$execmd" == "" ]; then
-				echo "NoAJoinCt" $NoAJoinCt >> /tmp/clientdebug
 				if [ "$NoAJoinCt" == "$FileNum" ]; then
 					/etc/init.d/S90multi-role restart
 					sed -i 's/STA_CONF_ORDER=.*/STA_CONF_ORDER=0/' /etc/nas/config/wifinetwork-param.conf
@@ -302,7 +349,7 @@ if [ "$Retry_ct" -ge 2 ]; then
 		
 	if [ ! -f "/tmp/client_disconnect" ]; then
 		ConnectRetry=`cat /tmp/ApCliRetry`
-		echo "Old ConnectRetry" $ConnectRetry >> /tmp/clientdebug
+		#echo "Old ConnectRetry" $ConnectRetry >> /tmp/clientdebug
 		if [ "$ConnectRetry" -ge "$RetryLimit" ]; then
 		
 			if [ "$TempConnect" == "1" ]; then
@@ -313,15 +360,15 @@ if [ "$Retry_ct" -ge 2 ]; then
 					NewRank=0
 				fi
 				sed -i 's/STA_CONF_ORDER=.*/STA_CONF_ORDER='${NewRank}'/' /etc/nas/config/wifinetwork-param.conf
-				echo "NewRank" $NewRank >> /tmp/clientdebug
+				#echo "NewRank" $NewRank >> /tmp/clientdebug
 			fi
 			ConnectRetry=0
 			echo $ConnectRetry > /tmp/ApCliRetry 
-			echo "Change New Connect" >> /tmp/clientdebug
-			echo "0" > /tmp/ConnectionLoop
+			#echo "Change New Connect" >> /tmp/clientdebug
+			#echo "0" > /tmp/ConnectionLoop
 		else
 			ConnectRetry=`expr $ConnectRetry + 1`
-			echo "New ConnectRetry" $ConnectRetry >> /tmp/clientdebug
+			#echo "New ConnectRetry" $ConnectRetry >> /tmp/clientdebug
 			echo $ConnectRetry > /tmp/ApCliRetry 
 		fi
 	else

@@ -1,5 +1,5 @@
-WDPACKAGE_RESTAPI_VERSION = 2.4.0-781
-WDPACKAGE_RESTAPI_RELEASE_DATE = 2014-07-29
+WDPACKAGE_RESTAPI_VERSION = 2.4.0-807
+WDPACKAGE_RESTAPI_RELEASE_DATE = 2014-09-11
 WDPACKAGE_RESTAPI_SOURCE = admin-rest-api-$(WDPACKAGE_RESTAPI_VERSION).deb
 
 define WDPACKAGE_RESTAPI_EXTRACT_CMDS
@@ -21,6 +21,7 @@ define WDPACKAGE_RESTAPI_INSTALL_TARGET_CMDS
 	chmod 775 $(TARGET_DIR)/var/www/rest-api/api/Filesystem/src/Filesystem/Cli/volume_mount.php
 	ln -sf /var/www/rest-api/api/Shares/src/Shares/Cli/crud_share_db.php $(TARGET_DIR)/usr/local/sbin/crud_share_db.sh
 	chmod 775 $(TARGET_DIR)/var/www/rest-api/api/Shares/src/Shares/Cli/crud_share_db.php
+	chmod 775 $(TARGET_DIR)/var/www/rest-api/api/Jobs/src/Jobs/Cli/jobs_clean_up.php
 	rm -Rf $(TARGET_DIR)/DEBIAN
 	find  $(TARGET_DIR)/var/www/rest-api -name tests -type d | xargs -n 1 rm -rf
 	sed -i 's/RESTAPI_.*/RESTAPI_'$(WDPACKAGE_RESTAPI_VERSION):$(WDPACKAGE_RESTAPI_RELEASE_DATE)'/' $(TARGET_DIR)/etc/version.packages

@@ -36,6 +36,12 @@ START_PROXY=0
 #change this to 0 to disable the twonky tuner service
 START_TUNER=0
 
+echo "===================" >> /tmp/twonkydebug.log
+date >> /tmp/twonkydebug.log
+ps aux >> /tmp/twonkydebug.log
+echo "Call Twonky init script with $1 from $PPID" >> /tmp/twonkydebug.log
+echo "-------------------" >> /tmp/twonkydebug.log
+
 #=================================================================[ Script ]===
 
 
