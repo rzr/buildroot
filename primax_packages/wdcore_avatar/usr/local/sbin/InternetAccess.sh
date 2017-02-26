@@ -16,7 +16,7 @@ PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 # Begin Script
 #---------------------
 
-if [ -d "/etc/avahi/AvahiService" ] && [ ! -f "/etc/avahi/services/smb.service" ]; then
+if [ -d "/tmp/avahi_service/AvahiService" ] && [ ! -f "/tmp/avahi_service/services/smb.service" ]; then
 	echo "InternetConnectionFailed"
 	exit 0
 fi

@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# Stolen from RedHat FC5.
+#
+
+# Check that smb.conf exists.
+[ -f /etc/minidlna.conf ] || exit 0
+
+RETVAL=0
+
+start() {
+	echo -n "Starting MiniDLNA services: "
+	/usr/sbin/minidlnad -f /etc/minidlna.conf
+	RETVAL=$?
+	echo "done"
+	
+	return $RETVAL
+}	
+
+stop() {
+	echo -n "Shutting down MiniDLNA services: "
+	kill -9 `pidof minidlnad`
+	RETVAL=$?
+	echo "done"
+	return $RETVAL
+}	
+
+restart() {
+	stop
+	start
+}	
+
+reload() {
+	stop
+	/usr/sbin/minidlnad -f /etc/minidlna.conf -R	
+}	
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+  	restart
+	;;
+  rescan)
+  	reload
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

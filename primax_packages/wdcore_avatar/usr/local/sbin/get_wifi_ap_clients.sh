@@ -5,6 +5,7 @@ specified=$1
 specifiedMAC=$2
 
 if [ "$AP_DHCPD_ENABLE" == "true" ]; then 
+	arp -a > /tmp/apclientARP
 	for tmp in `cat /var/run/dhcpd.leases|grep ^lease|awk '{ print $2 }'|sort|uniq`
 	do
 		client=`cat /var/run/dhcpd.leases|grep -A 8 $tmp|grep client|awk '{ print $2 }'|sort|uniq|sed 's/;*$//'`
@@ -18,6 +19,15 @@ if [ "$AP_DHCPD_ENABLE" == "true" ]; then
   			continue
   		fi
   		echo $mac >> /tmp/getapclient
+		
+		iptmp=`cat /tmp/apclientARP | grep "wlan1" | grep -rsi "${wifimac}" | tail -1`
+  		ipclient=`echo "$iptmp" | cut -c 4-17`
+  		if [ "$ipclient" != "" ]; then
+  			if [ "$ipclient" != "$tmp" ]; then
+  				tmp="${ipclient}"
+  			fi
+  		fi
+  	
 		if [ "$specified" == "" ]; then
 			if [ "$mac" == "$wifimac" ]; then
   				sta_info="mac:\"$mac\" ip:\"$tmp\" name:$client"
@@ -26,7 +36,7 @@ if [ "$AP_DHCPD_ENABLE" == "true" ]; then
   			specifiedMAC=`echo "$specifiedMAC" | tr [:lower:] [:upper:]`
   			if [ "$specifiedMAC" == "$wifimac" ]; then
   				sta_info="mac:\"$mac\" ip:\"$tmp\" name:$client"
-  				break;
+  				break
   			fi
   		fi
   	
@@ -39,7 +49,7 @@ if [ "$AP_DHCPD_ENABLE" == "true" ]; then
   		fi
 	done
 	
-	iw wlan1 station dump| grep "Station" > /tmp/apclientnum
+	iw wlan1 station dump | grep "Station" > /tmp/apclientnum
 	cat /tmp/apclientnum | while read lineProfile
 	do
 		wifimac=`echo ${lineProfile}| grep "Station" | awk '{ print $2 }' |  tr [:lower:] [:upper:]`
@@ -53,12 +63,15 @@ if [ "$AP_DHCPD_ENABLE" == "true" ]; then
   			fi
   		fi
   		
+  		iptmp=`cat /tmp/apclientARP | grep "wlan1" | grep -rsi "${wifimac}" | tail -1`
+  		ipclient=`echo "$iptmp" | cut -c 4-17`
+  		
   		if [ "$specified" == "" ]; then	
-  			sta_info="mac:\"$wifimac\" ip:\"\" name:\"\""
+  			sta_info="mac:\"$wifimac\" ip:\"${ipclient}\" name:\"Unknown\""
   		elif [ "$specified" == "--mac" ]; then
   			specifiedMAC=`echo "$specifiedMAC" | tr [:lower:] [:upper:]`
   			if [ "$specifiedMAC" == "$wifimac" ]; then
-  				sta_info="mac:\"$mac\" ip:\"\" name:\"\""
+  				sta_info="mac:\"$mac\" ip:\"${ipclient}\" name:\"Unknown\""
   				break;
   			fi
   		fi
@@ -77,20 +90,24 @@ if [ "$AP_DHCPD_ENABLE" == "true" ]; then
   	fi
 else
 	iw wlan1 station dump| grep "Station" > /tmp/apclientnum
+	arp -a > /tmp/apclientARP
 	cat /tmp/apclientnum | while read lineProfile
 	do
 		wifimac=`echo ${lineProfile}| grep "Station" | awk '{ print $2 }' |  tr [:lower:] [:upper:]`
 		if [ "${wifimac}" == "" ];then
   			continue
   		fi
-  		
+  			
+  		iptmp=`cat /tmp/apclientARP | grep "wlan1" | grep -rsi "${wifimac}" | tail -1`
+  		ipclient=`echo "$iptmp" | cut -c 4-17`
+  	
   		if [ "$specified" == "" ]; then	
-  			sta_info="mac:\"$wifimac\" ip:\"\" name:\"\""
+  			sta_info="mac:\"$wifimac\" ip:\"$ipclient\" name:\"Unknown\""
   		elif [ "$specified" == "--mac" ]; then
   			specifiedMAC=`echo "$specifiedMAC" | tr [:lower:] [:upper:]`
   			if [ "$specifiedMAC" == "$wifimac" ]; then
-  				sta_info="mac:\"$mac\" ip:\"\" name:\"\""
-  				break;
+  				sta_info="mac:\"$mac\" ip:\"$ipclient\" name:\"Unknown\""
+  				break
   			fi
   		fi
   	
@@ -105,4 +122,3 @@ else
 fi	
 
 exit 0
-

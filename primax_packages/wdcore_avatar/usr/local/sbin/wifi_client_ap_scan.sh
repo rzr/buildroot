@@ -178,21 +178,21 @@ if [ "$start_scan" == "1" ]; then
 			rm /tmp/scan_replace_list 
 		fi
 		
+		if [ -f "/etc/nas/config/wifinetwork-remembered.conf" ]; then
+			cat /etc/nas/config/wifinetwork-remembered.conf > /tmp/scan_replace_list
+		fi
+		
 		if [ "$b_remembered" != "true" ]; then
 			if [ -f "/tmp/wifinetwork-remembered.conf" ]; then
 				#cliremembered=`cat /tmp/wifinetwork-remembered.conf | awk 'BEGIN{FS="remembered=" } {print $NF}' | cut -d '"' -f 2`
 				#cliconnect=`cat /tmp/wifinetwork-remembered.conf | awk 'BEGIN{FS="connected=" } {print $NF}' | cut -d '"' -f 2`
 				#if [ "$cliconnect" == "true" ] && [ "$cliremembered" == "false" ]; then 
 				if [ "$connectStatus" == "COMPLETED" ] && [ "$WEP_Fail" == "0" ]; then	
-					cat /tmp/wifinetwork-remembered.conf > /tmp/scan_replace_list
+					cat /tmp/wifinetwork-remembered.conf >> /tmp/scan_replace_list
 				fi
 			fi
 		fi
-		
-		if [ -f "/etc/nas/config/wifinetwork-remembered.conf" ]; then
-			cat /etc/nas/config/wifinetwork-remembered.conf >> /tmp/scan_replace_list
-		fi
-		
+	
 		if [ -f "/tmp/scan_replace_listtmp" ]; then
 			rm /tmp/scan_replace_listtmp
 		fi 

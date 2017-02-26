@@ -186,7 +186,7 @@ my_check()
 
 my_mount()
 {
-    echo "$dev SD:$SDdev HD:$HDDdev"
+    echo "${PPID} $dev SD:$SDdev HD:$HDDdev" >> /tmp/automount.log
     if [ "$dev" == "$SDdev" ]; then
         mount_point=SDcard
     else
@@ -227,12 +227,13 @@ my_mount()
         if [ "$mount_point" == "sdb1_fuse" ]; then
             mkdir -p "${destdir}/$mount_point" || exit 1
             echo "${PPID} Mount on $1" >> /tmp/automount.log
-            if ! mount -t ufsd -o trace=off,async,force,fmask=0000,dmask=0000 "/dev/$1" "${destdir}/$mount_point"; then
+            if ! mount -t ufsd -o trace=off,async,fmask=0000,dmask=0000 "/dev/$1" "${destdir}/$mount_point"; then
                 mounted=`mount | grep "$1 " | wc -l`
                 if [ $mounted -gt 0 ]; then
                     echo "${PPID} Already mount on $1" >> /tmp/automount.log
                     exit 1
                 fi
+                /usr/local/sbin/sendAlert.sh 0004
                 # my_check $1
                 if ! mount -t ufsd -o trace=off,async,force,fmask=0000,dmask=0000 "/dev/$1" "${destdir}/$mount_point"; then
                     rmdir "${destdir}/$mount_point_fuse"
@@ -250,12 +251,13 @@ my_mount()
             mkdir -p "${destdir}/$mount_point" || exit 1
             echo "${PPID} Mount on $1" >> /tmp/automount.log
             if [ "$mount_point" == "sdb1" ]; then
-                if ! mount -t ufsd -o trace=off,async,force,fmask=0000,dmask=0000 "/dev/$1" "${destdir}/$mount_point"; then
+                if ! mount -t ufsd -o trace=off,async,fmask=0000,dmask=0000 "/dev/$1" "${destdir}/$mount_point"; then
                     mounted=`mount | grep "$1 " | wc -l`
                     if [ $mounted -gt 0 ]; then
                         echo "${PPID} Already mount on $1" >> /tmp/automount.log
                         exit 1
                     fi
+                    /usr/local/sbin/sendAlert.sh 0004
                     # my_check $1
                     if ! mount -t ufsd -o trace=off,async,force,fmask=0000,dmask=0000 "/dev/$1" "${destdir}/$mount_point"; then
                         # failed to mount, clean up mountpoint
@@ -307,7 +309,7 @@ my_mount()
             if [ ! -f /tmp/sdstats ]; then
 	            echo "status=waiting" > /tmp/sdstats
             fi
-        killall -9 rsync > /dev/null 2>&1
+            killall -9 rsync > /dev/null 2>&1
     fi
     shared=`cat /etc/samba/smb.conf | grep "\[$mount_point\]" | wc -l`
     if [ $shared -eq 0 ]; then
@@ -322,7 +324,7 @@ my_mount()
 #Video format for FUSE(file cache)
 add_video_format()
 {
-    rm /tmp/videoformat
+    rm -f /tmp/videoformat
     if [ ! -f /usr/local/wdmcserver/bin/mime_types.txt ]; then
         echo .mp4 >> /tmp/videoformat	
         echo .avi >> /tmp/videoformat	
@@ -362,9 +364,9 @@ add|"")
     fi
     isKnownType=`blkid /dev/$1 | grep TYPE | wc -l`
     if [ $isKnownType -eq 0 ]; then
-        echo "$1 Type Unknown!!"
+        echo "${PPID} $1 Type Unknown!!" >> /tmp/automount.log
         if [ -f /tmp/SDDevNode ]; then
-            echo "Do SDCard"
+            echo "${PPID} Do SDCard" >> /tmp/automount.log
             SDNode=`cat /tmp/SDDevNode | cut -c 6-8`
             echo "Debug $dev $SDNode"
             if [ "$dev" == "$SDNode" ]; then 
@@ -398,11 +400,12 @@ add|"")
       fi
     fi
     if [ $ishddrive -eq 1 ]; then
-        isHDDMount=`grep /dev/$HDDdev /proc/mounts | wc -l`
+        #isHDDMount=`grep /dev/$HDDdev /proc/mounts | wc -l`
+        isHDDMount=`grep "/media/sdb1 " /proc/mounts | wc -l`
         if [ $isHDDMount -eq 1 ]; then
-            echo "HDD already mounted"
+            echo "${PPID} HDD already mounted" >> /tmp/automount.log
         else
-            echo "Try to Mounte HDD"
+            echo "${PPID} Try to Mounte HDD" >> /tmp/automount.log
             isGPT=`blkid /dev/$1 | grep EFI | wc -l`
             if [ $isGPT -eq 1 ]; then
                 echo "***GPT found, ignore $1***"
@@ -415,7 +418,7 @@ add|"")
     ;;
 remove)
     echo "####${ACTION}####"
-    echo "do remove" >> /tmp/automount.log
+    echo "${PPID} do remove on $1" >> /tmp/automount.log
     my_umount $1
     ;;
 esac

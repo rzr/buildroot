@@ -5,23 +5,29 @@ sleep 3
 make
 sleep 5
 mkdir -p outputFWupg
-cp -a FWupg.config outputFWupg/.config
+cp -a fwconfigs/FWupg/FWupg.config outputFWupg/.config
 make O=./outputFWupg
 sleep 2
 cp -a outputFWupg/build/linux-custom/arch/arm/configs/am335x_fwupdate_defconfig outputFWupg/build/linux-custom/.config
 sleep 2
+cp -af primax_packages/bootloader/MLO outputFWupg/target/media/sda1/update/MLO
+cp -af primax_packages/bootloader/u-boot.img outputFWupg/target/media/sda1/update/u-boot.img
+md5sum outputFWupg/target/media/sda1/update/MLO | cut -c 1-32 > outputFWupg/target/media/sda1/update/MLO.md5
+md5sum outputFWupg/target/media/sda1/update//u-boot.img  | cut -c 1-32 > outputFWupg/target/media/sda1/update/u-boot.img.md5
 make O=./outputFWupg
 FW_Version=`cat output/target/etc/version`
 rm -f MyPassportWireless_$FW_Version.bin
+#cp -af primax_packages/bootloader/MLO output/images/MLO
+#cp -af primax_packages/bootloader/u-boot.img output/images/u-boot.img
 mkdir -p fwupg_images
 cd fwupg_images
 echo "AV1W" > package
 cp ../fwupg_patch/upgrade.sh .
 md5sum ../fwupg_patch/upgrade.sh | cut -c 1-32 > upgrade.sh.md5
-cp ../output/images/MLO .
-md5sum ../output/images/MLO | cut -c 1-32 > MLO.md5
-cp ../output/images/u-boot.img .
-md5sum ../output/images/u-boot.img | cut -c 1-32 > u-boot.img.md5
+#cp ../output/images/MLO .
+#md5sum ../output/images/MLO | cut -c 1-32 > MLO.md5
+#cp ../output/images/u-boot.img .
+#md5sum ../output/images/u-boot.img | cut -c 1-32 > u-boot.img.md5
 cp ../output/images/uImage .
 md5sum ../output/images/uImage | cut -c 1-32 > uImage.md5
 cp ../output/images/AsmSataFw.bin .

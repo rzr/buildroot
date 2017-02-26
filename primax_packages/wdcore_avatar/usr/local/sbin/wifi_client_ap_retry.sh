@@ -84,6 +84,10 @@ if [ "$Retry_ct" -ge 2 ]; then
 			echo $ConnectRetry > /tmp/ApCliRetry 
 			echo "client_disconnect" > /tmp/client_disconnect
 			rm /tmp/CliKeyRetry 
+			if [ "$Debugmode" == "1" ]; then
+				timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
+				echo $timestamp ": wifi_client_ap_retry.sh Change Profile:" "$NewRank" >> /tmp/wificlientap.log
+			fi
 		else
 			exit 0
 		fi
@@ -182,6 +186,11 @@ if [ "$Retry_ct" -ge 2 ]; then
     			cli2cipher=`echo ${lineProfile} | awk 'BEGIN{FS="security_mode=" } {print $NF}' | cut -d '"' -f 2 | awk -F/ '{print $2}' | awk '{print $1}'`
     			cli2bssid=`echo ${lineProfile} | awk 'BEGIN{FS="bssi\/dmap=" } {print $NF}' | cut -d ' ' -f 1`
     			cli2key=`echo ${lineProfile} | awk 'BEGIN{FS="security_key=" } {print $NF}' | cut -d '"' -f 2` 
+    			#if [ "$TempConnect" == "1" ]; then
+    			#	cli2key=`echo "$cli2key" | openssl base64 -d`
+    			#else
+    			#	cli2key=`echo "$cli2key" | openssl base64 -d`
+    			#fi
 				
 				cliDhcp=`echo ${lineProfile} | awk 'BEGIN{FS="dhcp_enabled=" } {print $NF}' | cut -d '"' -f 2`
 				cliip=`echo ${lineProfile} | awk 'BEGIN{FS="ip=" } {print $NF}' | cut -d '"' -f 2`

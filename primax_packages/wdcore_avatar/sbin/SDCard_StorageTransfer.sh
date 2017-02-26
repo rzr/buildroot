@@ -65,6 +65,7 @@ timestamp=$(date "+%Y-%m-%d")
 SDVolume=`df | grep /media/SDcard | awk '{ print $3 }'`
 HDDSpace=`df | grep /DataVolume | awk '{ print $4 }'`
 if [ "$SDVolume" == "" ]; then
+	echo "18;0;" > /tmp/MCU_Cmd 
 	exit 1
 fi
 echo 0 > /tmp/SDStatusError
@@ -79,8 +80,8 @@ fullCID=`cat /tmp/fullCID`
 
 #check CID mapping{ 
 if [ `ls -al /media/sdb1/.wdcache/ | grep ${fullCID} | wc -l` -eq 0 ]; then
-    if [ `find /media/sdb1/SD\ Card\ Imports/ -name .${fullCID} | wc -l` != 0 ]; then
-		CIDpath=`find /media/sdb1/SD\ Card\ Imports/ -name .${fullCID}`
+	CIDpath=`find /media/sdb1/SD\ Card\ Imports/ -name .${fullCID} -type f -maxdepth 3`
+    if [ "${CIDpath}" != "" ]; then
     	CID=`echo ${CIDpath} | cut -c 29-40`
     fi
 else
@@ -122,16 +123,17 @@ else
 	autotransfer=$2
 fi
 
-#if [ "$autotransfer" == "false" ]; then
-#	exit 0
-#else
+if [ "$autotransfer" == "false" ]; then
+	exit 0
+else
    if [ "$SDVolume" -gt "$HDDSpace" ]; then                                             
         /usr/local/sbin/sendAlert.sh 2010 &
         /usr/local/sbin/incUpdateCount.pm storage_transfer &
         echo "status=failed" > /tmp/sdstats
+        echo "18;0;" > /tmp/MCU_Cmd 
         exit 1                                                                       
    fi 
-#fi
+fi
 
 if [ ! -d "/shares/Public/SD Card Imports" ]; then
     mkdir -p "/shares/Public/SD Card Imports"
@@ -150,11 +152,13 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 	#sed -i 's/TransferStatus=.*/TransferStatus=process/' /etc/nas/config/sdcard-transfer-status.conf
 	if [ "$SDVolume" -gt "$HDDSpace" ]; then                                             
 		/usr/local/sbin/sendAlert.sh 2010 &                                          
+		echo "18;0;" > /tmp/MCU_Cmd 
 		exit 1                                                                       
 	fi 
 	if [ `ls -1 /media/SDcard/ | wc -l` -eq 0 ]; then
 		mkdir -p "${SDcard}"
 		sed -i "s/status=.*/status=completed/" /tmp/sdstats
+		echo "18;0;" > /tmp/MCU_Cmd 
 		exit 0
 	fi
 	
@@ -163,6 +167,7 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 		if [ `ps aux | grep rsync | grep /media/SDcard | wc -l` -ne 0 ] && [ `cat /etc/nas/config/sdcard-transfer-status.conf | grep process | wc -l` -ne 0 ]; then
 			rm -rf "${SDcard}"
 			killall -9 rsync
+			echo "18;0;" > /tmp/MCU_Cmd 
 			exit 1
 		else
 			echo "TransferStatus=process" > /etc/nas/config/sdcard-transfer-status.conf
@@ -228,6 +233,7 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
    					for  ((i=1; i<=$ArchiveCount; i=i+1))    
     				do
         				ArchivePath=`cat /tmp/sdArchivePath | sed -n "${i}p"`
+        				filetimestamp=`stat -c %y "${ArchivePath}" | cut -d "." -f 1`
         				SDpath="${ArchivePath%/*}"
         				tmpname=${ArchivePath##*/}
 						oldname=${tmpname%%_tmparchive} 
@@ -243,14 +249,7 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 						#nobackup=${Rpathname%%$tmpname} 
 						#echo "nobackup" "$nobackup"
 						mv "${SDpath}/${tmpname}" "${SDpath}/${newname}"
-						#if [ ! -d "${SDcard}/${nobackup}" ]; then
-						#mkdir -p "${SDcard}/${nobackup}"
-						#fi
-						#echo "create" "${SDcard}/${nobackup}"
-						#if [ ! -f "${SDcard}/${nobackup}${oldname}" ]; then
-						#	mv -f "${SDpath}/${oldname}" "${SDcard}/${nobackup}"
-						#fi
-						#mv -f "${SDpath}/${newname}" "${SDpath}/${oldname}"
+						touch --date="${filetimestamp}" "${SDpath}/${newname}"
     				done
     				rm /tmp/sdArchivePath
 				fi
@@ -297,6 +296,12 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 				done
 			else
 				execmd="nice -n -19 mv -f /media/SDcard/* \"${SDcard}/\" > /dev/null 2>&1"
+				eval "$execmd"
+				if [ $? != 0 ]; then
+					echo "1" > /tmp/SDStatusError
+				fi
+				
+				execmd="nice -n -19 mv -f /media/SDcard/.[^.]* \"${SDcard}/\" > /dev/null 2>&1"
 				eval "$execmd"
 				if [ $? != 0 ]; then
 					echo "1" > /tmp/SDStatusError
@@ -441,6 +446,11 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 				if [ $? != 0 ]; then
 					echo "1" > /tmp/SDStatusError
 				fi
+				execmd="nice -n -19 cp -a /media/SDcard/.[^.]* \"${SDcard}/\" > /dev/null 2>&1"
+				eval "$execmd"
+				if [ $? != 0 ]; then
+					echo "1" > /tmp/SDStatusError
+				fi
 				#echo "$execmd"
 			fi
 			cat /tmp/DoneFolder | while read DoneFolders
@@ -457,6 +467,7 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
    					for  ((i=1; i<=$ArchiveCount; i=i+1))    
     				do
         				ArchivePath=`cat /tmp/sdArchivePath | sed -n "${i}p"`
+        				filetimestamp=`stat -c %y "${ArchivePath}" | cut -d "." -f 1`
         				SDpath="${ArchivePath%/*}"
         				tmpname=${ArchivePath##*/}
 						oldname=${tmpname%%_tmparchive} 
@@ -472,6 +483,8 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 						#nobackup=${Rpathname%%$tmpname} 
 						#echo "nobackup" "$nobackup"
 						mv "${SDpath}/${tmpname}" "${SDpath}/${newname}"
+						touch --date="${filetimestamp}" "${SDpath}/${newname}"
+						
 						#if [ ! -d "${SDcard}/${nobackup}" ]; then
 						#	mkdir -p "${SDcard}/${nobackup}"
 						#fi

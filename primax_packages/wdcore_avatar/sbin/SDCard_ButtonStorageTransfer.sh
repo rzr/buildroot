@@ -38,28 +38,28 @@ fi
 #echo status=waiting > /tmp/sdstats
 #echo "total_size_in_bytes=1024" > /tmp/sdsize_total
 #echo "transferred_size_in_bytes=0" > /tmp/sdsize
-sctool `cat /tmp/SDDevNode`
-[ -s "/tmp/CIDbackup" ] && CID=`cat /tmp/CIDbackup`
+#sctool `cat /tmp/SDDevNode`
+#[ -s "/tmp/CIDbackup" ] && CID=`cat /tmp/CIDbackup`
 #CID=SDCard_`date +%Y.%m.%d.%H%M`
-fullCID=`cat /tmp/fullCID`
+#fullCID=`cat /tmp/fullCID`
 #newCID=${CID}
 
 #check CID mapping{ 
-if [ `ls -al /media/sdb1/.wdcache/ | grep ${fullCID} | wc -l` -eq 0 ]; then
-    if [ `find /media/sdb1/SD\ Card\ Imports/ -name .${fullCID} | wc -l` != 0 ]; then
-	CIDpath=`find /media/sdb1/SD\ Card\ Imports/ -name .${fullCID}`
-    	CID=`echo ${CIDpath} | cut -c 29-40`
-    fi
-else
-    CID=`cat /media/sdb1/.wdcache/.${fullCID}`	
-fi
+#if [ `ls -al /media/sdb1/.wdcache/ | grep ${fullCID} | wc -l` -eq 0 ]; then
+#    CIDpath=`find /media/sdb1/SD\ Card\ Imports/ -name .${fullCID} -type f -maxdepth 3`
+#    if [ "${CIDpath}" != "" ]; then
+#    	CID=`echo ${CIDpath} | cut -c 29-40`
+#    fi
+#else
+#    CID=`cat /media/sdb1/.wdcache/.${fullCID}`	
+#fi
 #} check CID mapping
 
-if [ -d /media/sdb1_fuse ]; then
-    SDcard="/media/sdb1_fuse/SD Card Imports/${CID}"
-else
-    SDcard="/media/sdb1/SD Card Imports/${CID}"
-fi
+#if [ -d /media/sdb1_fuse ]; then
+#    SDcard="/media/sdb1_fuse/SD Card Imports/${CID}"
+#else
+#    SDcard="/media/sdb1/SD Card Imports/${CID}"
+#fi
 
 sdgpio=`grep gpio-27 /sys/kernel/debug/gpio | awk '{print $5}'`                                         
 if [ "$sdgpio" == "hi" ]; then                   
@@ -97,6 +97,7 @@ else
    Waiting=`sqlite3 /usr/local/nas/orion/jobs.db  'select jobstate_id from Jobs where jobstate_id=1' | wc -l`
    if [ "${Running}" -eq "0" ] && [ "${Waiting}" -eq "0" ]; then
        echo status=waiting > /tmp/sdstats
+       echo "18;1;" > /tmp/MCU_Cmd
        /usr/local/sbin/storage_transfer_job_start.sh
    fi
    rm -f /tmp/SDCard_ButtonProcessing

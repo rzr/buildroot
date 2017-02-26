@@ -1,84 +1,41 @@
 #!/bin/sh
 #
-# Start fwupf....
+# Start fwupg....
 #
 
-ubifs=`df | grep "ubi0:rootfs " | wc -l`
 firmware_updated=0
+firmware_badblocks=0
 
 primax_fwupg()
 {
-    if [ $ubifs -eq 1 ]; then
-	  for volume_path in /media/sd*; do
-	    echo "Searching $volume_path"
-	    if [ -d "$volume_path/update"  ]; then
-	      echo "Found update folder in $volume_path"
-	      if [ -f "$volume_path/update/UpdateDone" ]; then
-	        echo "Already Updated"
-	        return
-	      fi
-	      update_images=`find $volume_path/update -name "My_Cloud_Mobile*"`
-	      for update_image in $update_images; do
-	      	echo "Update from $update_image"
-	      	kexec -l $update_image --atags
-	      	echo "" > $volume_path/update/UpdateDone
-	      	kexec -e
-	      done
-	    fi
-	  done
-	fi
-    /bin/mcu_daemon &
-    sleep 2
-    echo "10;0" >/tmp/MCU_Cmd &
-    echo "1;0" >/tmp/MCU_Cmd &
-    #sleep 2
-    #killall mcu_daemon
-    if [ -f "/media/sda1/update/MLO" ]; then
-		flash_erase /dev/mtd0 0 0
-		flash_erase /dev/mtd1 0 0
-		flash_erase /dev/mtd2 0 0
-		flash_erase /dev/mtd3 0 0
-		sleep 1
-	fi
-	if [ -f "/media/sda1/update/u-boot.img" ]; then
-		flash_erase /dev/mtd4 0 0
-		sleep 1
-	fi	
-	if [ -f "/media/sda1/update/uImage" ]; then
-		flash_erase /dev/mtd6 0 0
-		sleep 1
-	fi
+	/bin/mcu_daemon &
+	sleep 2
+	echo "10;0" >/tmp/MCU_Cmd &
+	echo "1;0" >/tmp/MCU_Cmd &
+
 	if [ -f "/media/sda1/update/MyPassportWireless-recover.bin" ]; then
 		size=`ls -la "/media/sda1/update/MyPassportWireless-recover.bin" | awk '{print $5}'`
-		mtd_debug read /dev/mtd9 0 $size /tmp/test.bin
+		nanddump /dev/mtd9 -l $size -f /tmp/temp.bin > /tmp/lognand 2>&1
+		head -c $size /tmp/temp.bin > /tmp/test.bin
 		md5_org=`md5sum /tmp/test.bin | awk '{print $1}'`
 		md5_new=`md5sum /media/sda1/update/MyPassportWireless-recover.bin | awk '{print $1}'`
 		if [ "${md5_org}" == "${md5_new}" ]; then
 			mv /media/sda1/update/MyPassportWireless-recover.bin /media/sda1/update/MyPassportWireless-recover-noupdate.bin
 			echo "No update for recovery image"
 		else
-			flash_erase /dev/mtd9 0 0
 			echo "Update for recovry image"
-			sleep 1
 		fi
-	fi
-	if [ -f "/media/sda1/update/MLO" ]; then
-		nandwrite -p /dev/mtd0 /media/sda1/update/MLO
-		nandwrite -p /dev/mtd1 /media/sda1/update/MLO
-		nandwrite -p /dev/mtd2 /media/sda1/update/MLO
-		nandwrite -p /dev/mtd3 /media/sda1/update/MLO
-        firmware_updated=1
-		sleep 1
-	fi
-	if [ -f "/media/sda1/update/u-boot.img" ]; then
-		nandwrite -p /dev/mtd4 /media/sda1/update/u-boot.img
-        firmware_updated=1
-		sleep 1
-	fi
-	if [ -f "/media/sda1/update/uImage" ]; then
-		nandwrite -p /dev/mtd6 /media/sda1/update/uImage
-        firmware_updated=1
-		sleep 1
+		badblocks=`cat /tmp/lognand | grep "bad blocks:" | sed -n -e 's/^.*bad blocks: //p'`
+		if [ "${badblocks}" == "0" ]; then
+			echo "recovery image with no badblocks"
+			firmware_badblocks=0
+		else
+			echo "recovery image with badblocks"
+			firmware_badblocks=1
+		fi
+		rm -f /tmp/temp.bin
+		rm -f /tmp/test.bin
+		rm -f /tmp/lognand
 	fi
 	ubiattach /dev/ubi_ctrl -m 7
 	mount -t ubifs ubi0_0 /media/
@@ -104,10 +61,87 @@ primax_fwupg()
 		sleep 5
 	fi
 	if [ -f "/media/sda1/update/MyPassportWireless-recover.bin" ]; then
+		killall mcu_daemon
+		sleep 1
+		flash_erase /dev/mtd9 0 0
+		sleep 1
 		nandwrite -p /dev/mtd9 /media/sda1/update/MyPassportWireless-recover.bin
 		firmware_updated=1
 		sync
 		sleep 1
+		/bin/mcu_daemon & 
+		sleep 2
+	fi
+	if [ $firmware_badblocks -eq 1 ]; then
+		MLOmd5=`md5sum /media/sda1/update/MLO | cut -c 1-32`
+		fileMLOmd5=`cat /media/sda1/update/MLO.md5`
+		ubootmd5=`md5sum /media/sda1/update/u-boot.img | cut -c 1-32`
+		fileubootmd5=`cat /media/sda1/update/u-boot.img.md5`	
+		if [ "${MLOmd5}" == "${fileMLOmd5}" ]; then
+				size=`ls -la "/media/sda1/update/MLO" | awk '{print $5}'`
+				nanddump /dev/mtd0 -l $size  -f /tmp/temp.bin
+				head -c $size /tmp/temp.bin > /tmp/test.bin
+				md5_org=`md5sum /tmp/test.bin | awk '{print $1}'`
+				md5_new=`md5sum /media/sda1/update/MLO | awk '{print $1}'`
+				if [ "${md5_org}" == "${md5_new}" ]; then
+						echo "No update for MLO"
+				else
+						killall mcu_daemon
+						flash_erase /dev/mtd0 0 0
+						sleep 1
+						nandwrite -p /dev/mtd0 /media/sda1/update/MLO
+						sleep 1
+						flash_erase /dev/mtd1 0 0
+						sleep 1
+						nandwrite -p /dev/mtd1 /media/sda1/update/MLO
+						sleep 1
+						flash_erase /dev/mtd2 0 0
+						sleep 1
+						nandwrite -p /dev/mtd2 /media/sda1/update/MLO
+						sleep 1
+						flash_erase /dev/mtd3 0 0
+						sleep 1
+						nandwrite -p /dev/mtd3 /media/sda1/update/MLO
+						sleep 1
+						sync
+						/bin/mcu_daemon &
+						sleep 2
+				fi
+				rm -f /tmp/temp.bin
+				rm -f /tmp/test.bin
+		fi
+		if [ "${ubootmd5}" == "${fileubootmd5}" ]; then
+				size=`ls -la "/media/sda1/update/u-boot.img" | awk '{print $5}'`
+				nanddump /dev/mtd4 -l $size  -f /tmp/temp.bin
+				head -c $size /tmp/temp.bin > /tmp/test.bin
+				md5_org=`md5sum /tmp/test.bin | awk '{print $1}'`
+				md5_new=`md5sum /media/sda1/update/u-boot.img | awk '{print $1}'`
+				if [ "${md5_org}" == "${md5_new}" ]; then
+						echo "No update for uboot"
+				else
+						flash_erase /dev/mtd4 0 0
+						sleep 1
+						nandwrite -p /dev/mtd4 /media/sda1/update/u-boot.img
+						sleep 1
+						sync
+						/bin/mcu_daemon &
+						sleep 2
+				fi
+				rm -f /tmp/temp.bin
+				rm -f /tmp/test.bin
+		fi		
+	fi	
+	MCU_version_org=`cat /tmp/MCU_Version | cut -c 2-`
+	MCU_version_new=`cat /media/sda1/update/WD_AVATAR.version | cut -c 2-`
+	if [ "${MCU_version_org}" == "${MCU_version_new}" ]; then
+		echo "28;0;" > /tmp/MCU_Cmd
+		sleep 5
+		echo "28;0;" > /tmp/MCU_Cmd
+		sleep 5
+		if [ $firmware_updated -eq 1 ]; then
+			reboot
+		fi
+		exit 0
 	fi
 	if [ -f "/media/sda1/update/WD_AVATAR.bin" ]; then
 	time /sbin/fwupgled.sh &
@@ -139,9 +173,9 @@ primax_fwupg()
 	if [ "$newMCU" == 0 ] && [ "$HWVER" == 2 ]; then
 		/sbin/stm32isp /media/sda1/update/WD_AVATARD3.bin
 	fi
-    if [ "$newMCU" == 0 ] && [ "$HWVER" == 3 ]; then
-        /sbin/stm32isp /media/sda1/update/WD_AVATARD4.bin
-    fi
+	if [ "$newMCU" == 0 ] && [ "$HWVER" == 3 ]; then
+		/sbin/stm32isp /media/sda1/update/WD_AVATARD4.bin
+	fi
 
 	firmware_updated=1
 	sleep 1

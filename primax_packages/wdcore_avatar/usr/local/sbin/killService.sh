@@ -30,7 +30,7 @@ case $1 in
 		    /etc/init.d/S48initdisk start;
 		    /etc/init.d/S50netatalk start;
 		    /etc/init.d/S70vsftpd start;
-            /etc/init.d/S80swapfile start;
+		    /etc/init.d/S80swapfile start;
 		    /etc/init.d/S85wdmcserverd stop;
 		    sleep 1
 		    /etc/init.d/S85wdmcserverd start;

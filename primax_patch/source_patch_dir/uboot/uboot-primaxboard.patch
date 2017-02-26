@@ -321,7 +321,7 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/main.c uboot-custom-mod4/commo
  	int need_buff = 1;
  	char *buff = (char *)cmd;	/* cast away const */
  	int rcode = 0;
-+	char recovery[128]="mmc dev ${mmcdev}; echo Recovery Booting ...; run nandargs; nand read 0x80200000 0x7c00000 0x400000; bootm 0x80200000";
++	char recovery[128]="mmc dev ${mmcdev}; echo Recovery Booting ...; run nandargs; nboot 0x80200000 0 0x7c00000; bootm 0x80200000";
  
  	if (len == -1) {
  		len = strlen(cmd);

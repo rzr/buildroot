@@ -1,0 +1,12 @@
+diff -uN avahi-0.6.31/avahi-daemon/static-services.c avahi-0.6.31/avahi-daemon/static-services.c
+--- avahi-0.6.31/avahi-daemon/static-services.c	2014-11-07 13:59:15.320501485 +0800
++++ avahi-0.6.31/avahi-daemon/static-services.c	2014-11-07 13:56:24.463465989 +0800
+@@ -49,6 +49,8 @@
+ #include "main.h"
+ #include "static-services.h"
+ 
++#define AVAHI_SERVICE_DIR "/tmp/avahi_service/services"
++
+ typedef struct StaticService StaticService;
+ typedef struct StaticServiceGroup StaticServiceGroup;
+ 

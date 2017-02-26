@@ -26,8 +26,8 @@ if [ "$APmode" == "" ]; then
 			echo $timestamp ": wifi_client_ap_ButtonPress.sh Turn ON AP mode to Downlink Client"  >> /tmp/wificlientap.log
 		fi
 		echo "ForceShareMode" > /tmp/ConnectionMode
-		SdStatus=`cat /etc/nas/config/sdcard-transfer-status.conf | awk -F= '{print $NF}'`
-		if [ "$SdStatus" != "process" ]; then
+		SdStatus=`/usr/local/sbin/storage_transfer_device_available.sh`
+		if [ "$SdStatus" != "true" ]; then
 			echo "22;01;" > /tmp/MCU_Cmd
 		fi
 		/usr/local/sbin/wifi_ap_set_config.sh --enabled EnabledHomeNetwork > /dev/null 2>&1 &

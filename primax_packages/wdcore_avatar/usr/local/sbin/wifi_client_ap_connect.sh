@@ -104,7 +104,12 @@ if [ "$option_connect" == "--connect" ]; then
   			fi
 			exit 2
 		fi  		
-  		cli2Ssid=`echo ${RememberAP} | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2`
+  		echo ${RememberAP} | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2 > /tmp/cli2Ssid
+    	sed -i 's/"//' /tmp/cli2Ssid	
+		sed -i 's/\(.*\)\"/\1/' /tmp/cli2Ssid
+		cli2Ssid=`cat /tmp/cli2Ssid`
+   		rm /tmp/cli2Ssid
+   		
     	cli2mac=`echo ${RememberAP} | awk 'BEGIN{FS="mac=" } {print $NF}' | cut -d '"' -f 2`
     	cli2join=`echo ${RememberAP} | awk 'BEGIN{FS="auto_join=" } {print $NF}' | cut -d '"' -f 2`
     	cli2trust=`echo ${RememberAP} | awk 'BEGIN{FS="trusted=" } {print $NF}' | cut -d '"' -f 2`
@@ -766,10 +771,13 @@ else
 	#if [ "$duplicate" == "1" ]; then
 	#	ssid_found=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN {FS="ssid="} {print $NF}' | cut -d '"' -f 2`
 	#else		
-		ssid_found=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2 | tail -1`
+	grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"' | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2 | tail -1 > /tmp/ssid_found
 	#fi
+    sed -i 's/"//' /tmp/ssid_found	
+	sed -i 's/\(.*\)\"/\1/' /tmp/ssid_found
+	ssid_found=`cat /tmp/ssid_found`
+   	rm /tmp/ssid_found
 	cat /etc/nas/config/wifinetwork-remembered.conf | grep -rsi "\"${string_mac}\"" | grep -v 'signal_strength="0"' > /tmp/wifinetwork-remembered.conf
-	
 	if [ -f "/tmp/executeTrust" ]; then
 		rm /tmp/executeTrust
 	fi
@@ -802,6 +810,7 @@ if [ "$ssid_found" != "" ]; then
 	sed -i '/STA_SSID_NAME/ s/`/\\`/g' /etc/nas/config/wifinetwork-param.conf
 	sed -i '/STA_SSID_NAME/ s/\\"/"/' /etc/nas/config/wifinetwork-param.conf
 	sed -i '/STA_SSID_NAME/ s/\(.*\)\\"/\1"/' /etc/nas/config/wifinetwork-param.conf	
+	
 fi
 
 if [ "${macSetting}" == "1" ]; then

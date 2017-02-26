@@ -30,7 +30,7 @@ primax_syschk()
         		echo "17;0;" > /tmp/MCU_Cmd
 			reboot
 		else
-			echo "system check pass"
+			echo "System check pass"
 		fi
 	else
 		echo "System Rebooting...Systemp check ignore"
@@ -39,7 +39,7 @@ primax_syschk()
 
 case "$1" in
   start)
-	echo "Starting syschk..."
+	echo -n "Starting syschk: "
 	primax_syschk
 	lighttpd_cgroup
 	;;

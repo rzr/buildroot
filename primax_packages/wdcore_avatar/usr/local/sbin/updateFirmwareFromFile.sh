@@ -67,21 +67,7 @@ pre-update_error()
 # prepare for pkg upgrades
 pkg_upgrade_init()
 {
-    #ledCtrl.sh LED_EV_FW_UPDATE LED_STAT_IN_PROG
     incUpdateCount.pm firmware_update
-    
-    ## - TODO: Use signal & run-levels
-    ## Stop processes 
-    #[ -e /etc/init.d/S99crond ]           && /etc/init.d/S99crond stop 2>/dev/null
-    #[ -e /etc/init.d/S95lld2d ]           && /etc/init.d/S95lld2d stop 2>/dev/null
-    #[ -e /etc/init.d/S95RestAPI ]         && /etc/init.d/S95RestAPI stop 2>/dev/null
-    #[ -e /etc/init.d/S92wdnotifierd ]     && /etc/init.d/S92wdnotifierd stop 2>/dev/null
-    #[ -e /etc/init.d/S92twonkyserver ]    && /etc/init.d/S92twonkyserver stop 2>/dev/null
-    #[ -e /etc/init.d/S91smb ]             && /etc/init.d/S91smb stop 2>/dev/null
-    #[ -e /etc/init.d/S85wdmcserverd ]     && /etc/init.d/S85wdmcserverd stop 2>/dev/null
-    #[ -e /etc/init.d/S70vsftpd ]          && /etc/init.d/S70vsftpd stop 2>/dev/null
-    #[ -e /etc/init.d/S50netatalk ]        && /etc/init.d/S50netatalk stop 2>/dev/null
-    #[ -e /etc/init.d/S50avahi-daemon ]    && /etc/init.d/S50avahi-daemon stop 2>/dev/null
     sync
     sleep 2
     cat /etc/saveconfigfiles.txt | xargs tar cvf /etc/saveconfigfiles.tar
@@ -160,11 +146,11 @@ echo "12;0;" > /tmp/MCU_Cmd
 AC=`cat /tmp/battery  | awk '{print $1}'`
 BatLevel=`cat /tmp/battery  | awk '{print $2}'`
 if [ ${BatLevel} -lt 50 ]; then
-    if [ ${AC} == "discharging" ]; then
-	    error="failed 206 \"Upgrade failure due to Insufficient Power\""
+#    if [ ${AC} == "discharging" ]; then
+        error="failed 206 \"Upgrade failure due to Insufficient Power\""
         echo  ${error} > /tmp/fw_update_status                       
         pre-update_error $error
-    fi
+#    fi
 fi
 # set a 'non-idle' status for the manual update-from-file case
 [ ! -f /tmp/fw_update_status ] && echo "downloading" > /tmp/fw_update_status
@@ -194,6 +180,9 @@ gunzip -t "${filename}"
 if [ $? != "0" ]; then
     pre-update_error "failed 200 \"invalid firmware package\""
 fi
+
+#rm -f /CacheVolume/MyPassportWireless.bin
+#cp -af "${filename}" /CacheVolume/MyPassportWireless.bin
 
 # check disk usage
 fwUpdateSpace=`tar vtzf "${filename}" | awk '{SUM += $3} END {print SUM}'`

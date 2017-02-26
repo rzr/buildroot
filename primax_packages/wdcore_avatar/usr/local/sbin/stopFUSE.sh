@@ -7,3 +7,4 @@ umount /media/sdb1/.wdcache/.wd-alert
 sync
 killall filecache
 umount /media/sdb1
+rmdir /media/sdb1_fuse

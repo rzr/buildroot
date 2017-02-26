@@ -71,7 +71,6 @@ if [ ! -f "/tmp/wifi_client_remembered_execute" ]; then
    		cli2encryptype=`echo ${ConnectProfile} | awk 'BEGIN{FS="security_mode=" } {print $NF}' | cut -d '"' -f 2 | awk -F/ '{print $1}'`
    		cli2cipher=`echo ${ConnectProfile} | awk 'BEGIN{FS="security_mode=" } {print $NF}' | cut -d '"' -f 2 | awk -F/ '{print $2}' | awk '{print $1}'`
    		cli2bssid=`echo ${ConnectProfile} | awk 'BEGIN{FS="bssi\/dmap=" } {print $NF}' | cut -d ' ' -f 1`
-   		cli2key=`echo ${ConnectProfile} | awk 'BEGIN{FS="security_key=" } {print $NF}' | cut -d '"' -f 2` 
    		cli2Signal=`echo ${ConnectProfile} | awk 'BEGIN{FS="signal_strength=" } {print $NF}' | cut -d ' ' -f 1`
 		clisecured=`echo ${ConnectProfile} | awk 'BEGIN{FS="secured=" } {print $NF}' | cut -d ' ' -f 1`
 		cliDhcp=`echo ${ConnectProfile} | awk 'BEGIN{FS="dhcp_enabled=" } {print $NF}' | cut -d '"' -f 2`
@@ -189,6 +188,8 @@ if [ ! -f "/tmp/wifi_client_remembered_execute" ]; then
 					else 
 						key_mgmt="WPA2PSK"
 					fi
+							
+					#wpapsk=`echo -n "$wpapsk" | openssl base64`		
 									
 					hiddenProfile="ssid=\""${connectedSsid}"\" mac=\""${connectedmac}"\" signal_strength=\""80"\" auto_join=\""true"\"  trusted=\""false"\" security_mode=\""${key_mgmt}/AES"\" connected=\""false"\" remembered=\""true"\" secured=\"true\" wps_enabled="\"${cliwpsenabled}\""\
 					dhcp_enabled=\""true"\" ip=\"\" netmask=\"\" gateway=\"\" dns0=\"\" dns1=\"\" dns2=\"\" mac_clone_enable=\"false\" cloned_mac_address=\"\" bssi/dmap=0 security_key=\"${wpapsk}\""
@@ -196,7 +197,7 @@ if [ ! -f "/tmp/wifi_client_remembered_execute" ]; then
 					cli2encryptype=${key_mgmt}
 					cli2cipher="AES"
 					
-					echo $hiddenProfile > /tmp/wifinetwork-remembered.conf	
+					echo $hiddenProfile | awk 'BEGIN {FS="bssi/dmap="} {print $1}' > /tmp/wifinetwork-remembered.conf	
 				fi
 				cli2key="${wpapsk}"
 				
@@ -271,7 +272,9 @@ if [ ! -f "/tmp/wifi_client_remembered_execute" ]; then
 				echo $timestamp ": wifi_client_remembered.sh Target STA_SSID_NAME" "$STA_SSID_NAME" >> /tmp/wificlientap.log
 			fi
 			
-			if [ "$STA_SSID_NAME" == "$connectedSsid" ]; then				
+			if [ "$STA_SSID_NAME" == "$connectedSsid" ]; then		
+				#cli2key=`echo -n "$cli2key" | openssl base64`		
+					
 				if [ "$cli2encryptype" == "NONE" ]; then
 					hiddenProfile="ssid=\""${connectedSsid}"\" mac=\""${connectedmac}"\" signal_strength=${cli2Signal} auto_join=\""$cli2join"\" trusted=\""$cli2trust"\" security_mode=\""${cli2encryptype}"\" connected=\""${cliremembered}"\" remembered=\""true"\" secured=${clisecured} wps_enabled="\"${cliwpsenabled}\"" \
 					dhcp_enabled=\""$cliDhcp"\" ip=\""$cliip"\" netmask=\""$climask"\" gateway=\""$cligw"\" dns0=\""$clidns0"\" dns1=\""$clidns1"\" dns2=\""$clidns2"\" mac_clone_enable=\""$cliclone"\" cloned_mac_address=\""$clicloneaddr"\" bssi/dmap=0 security_key=\"${cli2key}\""
@@ -346,7 +349,7 @@ if [ ! -f "/tmp/wifi_client_remembered_execute" ]; then
 					fi
 				fi
 				
-				echo $hiddenProfile > /tmp/wifinetwork-remembered.conf
+				echo $hiddenProfile | awk 'BEGIN {FS="bssi/dmap="} {print $1}' > /tmp/wifinetwork-remembered.conf
 				sed -i 's/\\"/"/g' /tmp/wifinetwork-remembered.conf
 				
 				if [ "$Debugmode" == "1" ]; then
@@ -406,7 +409,8 @@ if [ ! -f "/tmp/wifi_client_remembered_execute" ]; then
 					sed -i '/STA_PSK_KEY/ s/\(.*\)\\"/\1"/' /etc/nas/config/wifinetwork-param.conf
 					echo "22;0;"  > /tmp/MCU_Cmd
 				fi
-								
+				
+				#cli2key=`echo -n "$cli2key" | openssl base64`		
 				if [ "$cli2encryptype" == "NONE" ]; then
 					hiddenProfile="ssid=\""${connectedSsid}"\" mac=\""${connectedmac}"\" signal_strength=${cli2Signal} auto_join=\""$cli2join"\" trusted=\""$cli2trust"\" security_mode=\""${cli2encryptype}"\" connected=\""true"\" remembered=\""${cliremembered}"\" secured=${clisecured} wps_enabled="\"${cliwpsenabled}\""\
 					dhcp_enabled=\""$cliDhcp"\" ip=\""$cliip"\" netmask=\""$climask"\" gateway=\""$cligw"\" dns0=\""$clidns0"\" dns1=\""$clidns1"\" dns2=\""$clidns2"\" mac_clone_enable=\""$cliclone"\" cloned_mac_address=\""$clicloneaddr"\" bssi/dmap=1 security_key=\"${cli2key}\""
@@ -471,7 +475,7 @@ if [ ! -f "/tmp/wifi_client_remembered_execute" ]; then
 					fi
 				fi
 				
-				echo $hiddenProfile > /tmp/wifinetwork-remembered.conf
+				echo $hiddenProfile | awk 'BEGIN {FS="bssi/dmap="} {print $1}' > /tmp/wifinetwork-remembered.conf
 				sed -i 's/\\"/"/g' /tmp/wifinetwork-remembered.conf
 				#sed -i 's/\\\\/\\/g' /tmp/wifinetwork-remembered.conf
 				

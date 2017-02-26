@@ -440,7 +440,7 @@ CHANGE_WPA_SUPPLICANT_CONFIG()
             		echo "	pairwise=CCMP"								>> $WPA_SUPPLICANT_PATH
             	fi
             	echo "  psk=\"$STA_PSK_KEY\""                           >> $WPA_SUPPLICANT_PATH
-            	echo "  priority=100"                                  	>> $WPA_SUPPLICANT_PATH
+            	echo "  priority=90"                                  	>> $WPA_SUPPLICANT_PATH
             	echo "}"                                                >> $WPA_SUPPLICANT_PATH
     			echo ""                                                	>> $WPA_SUPPLICANT_PATH
     		
@@ -457,7 +457,7 @@ CHANGE_WPA_SUPPLICANT_CONFIG()
             			echo "	pairwise=CCMP"								>> $WPA_SUPPLICANT_PATH
            		 	fi
             		echo "  psk=\"$STA_PSK_KEY\""                           >> $WPA_SUPPLICANT_PATH
-            		echo "  priority=90"                                  	>> $WPA_SUPPLICANT_PATH
+            		echo "  priority=100"                                  	>> $WPA_SUPPLICANT_PATH
             		echo "}"                                                >> $WPA_SUPPLICANT_PATH
     				echo ""                                                	>> $WPA_SUPPLICANT_PATH
             	fi
@@ -477,7 +477,7 @@ CHANGE_WPA_SUPPLICANT_CONFIG()
             		echo "	pairwise=CCMP"								>> $WPA_SUPPLICANT_PATH
             	fi
             	echo "	psk=\"$STA_PSK_KEY\""                           >> $WPA_SUPPLICANT_PATH
-            	echo "  priority=100"                                  	>> $WPA_SUPPLICANT_PATH
+            	echo "  priority=90"                                  	>> $WPA_SUPPLICANT_PATH
             	echo "}"                                                >> $WPA_SUPPLICANT_PATH
             	echo ""                                                	>> $WPA_SUPPLICANT_PATH
             	
@@ -494,7 +494,7 @@ CHANGE_WPA_SUPPLICANT_CONFIG()
             			echo "	pairwise=CCMP"								>> $WPA_SUPPLICANT_PATH
             		fi
             		echo "	psk=\"$STA_PSK_KEY\""                           >> $WPA_SUPPLICANT_PATH
-            		echo "  priority=90"                                  	>> $WPA_SUPPLICANT_PATH
+            		echo "  priority=100"                                  	>> $WPA_SUPPLICANT_PATH
             		echo "}"                                                >> $WPA_SUPPLICANT_PATH
             		echo ""                                                	>> $WPA_SUPPLICANT_PATH
             	fi          	

@@ -65,7 +65,8 @@ AVAHI_CONF_ENV = ac_cv_func_strtod=yes \
 		jm_cv_func_working_re_compile_pattern=yes \
 		ac_use_included_regex=no \
 		avahi_cv_sys_cxx_works=yes \
-		DATADIRNAME=share
+		DATADIRNAME=share \
+
 
 AVAHI_CONF_OPT = --localstatedir=/var \
 		--disable-qt3 \
@@ -76,6 +77,7 @@ AVAHI_CONF_OPT = --localstatedir=/var \
 		--disable-gtk3 \
 		--disable-mono \
 		--disable-monodoc \
+		--disable-static \
 		--disable-stack-protector \
 		--with-distro=none \
 		$(if $(BR2_HAVE_DOCUMENTATION),--enable,--disable)-manpages \
