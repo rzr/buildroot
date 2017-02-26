@@ -36,7 +36,7 @@ if [ "$SDVolume" == "" ]; then
 fi
 
 #echo status=waiting > /tmp/sdstats
-#echo "total_size_in_bytes=0" > /tmp/sdsize_total
+#echo "total_size_in_bytes=1024" > /tmp/sdsize_total
 #echo "transferred_size_in_bytes=0" > /tmp/sdsize
 sctool `cat /tmp/SDDevNode`
 [ -s "/tmp/CIDbackup" ] && CID=`cat /tmp/CIDbackup`
@@ -96,6 +96,7 @@ else
    Running=`sqlite3 /usr/local/nas/orion/jobs.db  'select jobstate_id from Jobs where jobstate_id=2' | wc -l`
    Waiting=`sqlite3 /usr/local/nas/orion/jobs.db  'select jobstate_id from Jobs where jobstate_id=1' | wc -l`
    if [ "${Running}" -eq "0" ] && [ "${Waiting}" -eq "0" ]; then
+       echo status=waiting > /tmp/sdstats
        /usr/local/sbin/storage_transfer_job_start.sh
    fi
    rm -f /tmp/SDCard_ButtonProcessing

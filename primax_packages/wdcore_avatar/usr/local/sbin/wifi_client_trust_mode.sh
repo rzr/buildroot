@@ -125,6 +125,7 @@ if [ ! -f "/tmp/wifi_client_trust_execute" ]; then
 				/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 21 -j DROP > /dev/null 2> /dev/null < /dev/null
 				/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 53 -j DROP > /dev/null 2> /dev/null < /dev/null
 				/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 443 -j DROP > /dev/null 2> /dev/null < /dev/null
+				/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 9443 -j DROP > /dev/null 2> /dev/null < /dev/null
 				if [ "$Debugmode" == "1" ]; then
 					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
 					echo $timestamp ": wifi_client_trust_mode.sh Delete iptables rule" >> /tmp/wificlientap.log
@@ -149,6 +150,7 @@ if [ ! -f "/tmp/wifi_client_trust_execute" ]; then
 				/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 21 -j DROP > /dev/null 2> /dev/null < /dev/null
 				/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 53 -j DROP > /dev/null 2> /dev/null < /dev/null
 				/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 443 -j DROP > /dev/null 2> /dev/null < /dev/null
+				/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 9443 -j DROP > /dev/null 2> /dev/null < /dev/null
 				#/usr/sbin/iptables -D INPUT -i wlan0 -p icmp --icmp-type echo-request -j DROP > /dev/null 2> /dev/null < /dev/null
 				
 				/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 80 -j DROP > /dev/null 2> /dev/null < /dev/null
@@ -164,6 +166,7 @@ if [ ! -f "/tmp/wifi_client_trust_execute" ]; then
 				/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 21 -j DROP > /dev/null 2> /dev/null < /dev/null
 				/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 53 -j DROP > /dev/null 2> /dev/null < /dev/null
 				/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 443 -j DROP > /dev/null 2> /dev/null < /dev/null
+				/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 9443 -j DROP > /dev/null 2> /dev/null < /dev/null
 				#/usr/sbin/iptables -A INPUT -i wlan0 -p icmp --icmp-type echo-request -j DROP > /dev/null 2> /dev/null < /dev/null
 				if [ "$Debugmode" == "1" ]; then
 					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")

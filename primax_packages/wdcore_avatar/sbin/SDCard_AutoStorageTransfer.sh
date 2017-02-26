@@ -39,6 +39,10 @@ else
         echo "status=failed" > /tmp/sdstats
         exit 1
    fi
+   #total_size=`rsync -rv /media/SDcard/ | grep "total size is" | awk '{print $4}' | sed -n 's/,//gp'`
+   #if [ $? -eq 0 ]; then
+   #	echo "total_size_in_bytes=""$total_size" > /tmp/sdsize_total
+   #fi
    /usr/local/sbin/storage_transfer_job_start.sh &
 fi
 

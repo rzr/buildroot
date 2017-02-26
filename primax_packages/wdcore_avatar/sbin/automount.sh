@@ -119,7 +119,11 @@ my_umount()
            sed -i 's/TransferStatus=.*/TransferStatus=completed/' /etc/nas/config/sdcard-transfer-status.conf
            echo "18;0;" > /tmp/MCU_Cmd
        fi
-       killall -15 rsync
+       if [ `cat /tmp/sdstats | sed -n 's/.*=//p'` == "running" ]; then
+       		echo "status=failed" > /tmp/sdstats
+       		echo "transferred_size_in_bytes=0" > /tmp/sdsize
+       fi
+       killall -9 rsync
     fi
 
 }
@@ -303,6 +307,7 @@ my_mount()
             if [ ! -f /tmp/sdstats ]; then
 	            echo "status=waiting" > /tmp/sdstats
             fi
+        killall -9 rsync > /dev/null 2>&1
     fi
     shared=`cat /etc/samba/smb.conf | grep "\[$mount_point\]" | wc -l`
     if [ $shared -eq 0 ]; then

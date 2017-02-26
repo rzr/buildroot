@@ -120,7 +120,19 @@ start() {
 		fi
 		rm /fwupg
 	fi
-
+    #check factory restore
+    if [ -f "/etc/FacRestore" ] ; then
+        facrestore=`cat /etc/FacRestore`
+        if [ ${facrestore} == "compeleted" ] ; then
+            echo "Factory Restore Defaulted"
+            /usr/local/sbin/sendAlert.sh 2004
+        fi
+        rm /etc/FacRestore
+    fi
+    if [ -f /RestoreFromButton ]; then
+        echo "29;1" > /tmp/MCU_Cmd 2>/dev/null
+        rm -f /RestoreFromButton
+    fi
 	if [ -d /media/sdb1_fuse ]; then
 		/sbin/hiddenFile /media/sdb1_fuse/.wdmc
 		/sbin/hiddenFile /media/sdb1_fuse/.wdcache

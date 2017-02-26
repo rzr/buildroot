@@ -909,9 +909,9 @@ source "package/wdpackage_Notifier/Config.in"
 source "package/wdpackage_RestAPI/Config.in"
 source "package/wdpackage_WebUI/Config.in"
 source "package/wdpackage_TwonkyServer/Config.in"
+endif
 source "package/paragon-ufsd/Config.in"
 source "package/paragon-tools/Config.in"
-endif
 endmenu
 
 menu "Primax packages"
@@ -924,6 +924,7 @@ source "package/pmxpackage_scsiGetCID/Config.in"
 source "package/pmxpackage_hiddenFile/Config.in"
 source "package/pmxpackage_defaultsettings/Config.in"
 source "package/pmxpackage_fwupg/Config.in"
+source "package/pmxpackage_filecache/Config.in"
 endmenu
 
 endmenu

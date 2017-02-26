@@ -23,7 +23,7 @@ if [ ! -d "/etc/avahi/AvahiService" ]; then
 fi
 
 if [ "$TestService" == "" ]; then
-	cd /etc/avahi/
+	#cd /etc/avahi/
 	if [ -d "/etc/avahi/services" ]; then
 		rm -rf /etc/avahi/services
 		mkdir -p /etc/avahi/services
@@ -31,7 +31,7 @@ if [ "$TestService" == "" ]; then
 	cp -a /etc/avahi/AvahiService/afpd.service /etc/avahi/services/
 	
 elif [ "$TestService" == "All" ]; then
-	cd /etc/avahi/
+	#cd /etc/avahi/
 	if [ -d "/etc/avahi/services" ]; then
 		rm -rf /etc/avahi/services
 		mkdir -p /etc/avahi/services
@@ -41,7 +41,7 @@ elif [ "$TestService" == "All" ]; then
 	cp -a /etc/avahi/AvahiService/smb.service /etc/avahi/services/
 	cp -a /etc/avahi/AvahiService/ssh.service /etc/avahi/services/
 	cp -a /etc/avahi/AvahiService/sftp-ssh.service /etc/avahi/services/
-	cp -a /etc/avahi/AvahiService/daap.service /etc/avahi/services/
+	#cp -a /etc/avahi/AvahiService/daap.service /etc/avahi/services/
 	cp -a /etc/avahi/AvahiService/afpd.service /etc/avahi/services/
 	cp -a /etc/avahi/AvahiService/adisk.service /etc/avahi/services/
 fi

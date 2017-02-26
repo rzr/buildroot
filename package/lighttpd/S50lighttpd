@@ -17,17 +17,17 @@ MODIFY_LIGHTTPD_CONFIG()
 }
 
 start() {
-	chmod -R 775 "/usr/local/nas/orion"
-	chown -R root:www-data "/usr/local/nas/orion"
-	chown -Rh :www-data "/var/www/rest-api"
-	chown -Rh :www-data "/var/www/htdocs"
-	chown -Rh :www-data "/var/www/htdocs"
-	chmod -R 2775 "/var/www/htdocs"
-	chmod -R g-w "/var/www/rest-api"
-	chmod -R g-w "/var/www/htdocs"
-	rm -Rf /var/www/rest-api/htdocs/mapdrive
-	chmod -R 775 "/var/www/rest-api/config"
-	chown -R root:www-data "/var/www/rest-api/config"
+	#chmod -R 775 "/usr/local/nas/orion"
+	#chown -R root:www-data "/usr/local/nas/orion"
+	#chown -Rh :www-data "/var/www/rest-api"
+	#chown -Rh :www-data "/var/www/htdocs"
+	#chown -Rh :www-data "/var/www/htdocs"
+	#chmod -R 2775 "/var/www/htdocs"
+	#chmod -R g-w "/var/www/rest-api"
+	#chmod -R g-w "/var/www/htdocs"
+	#rm -Rf /var/www/rest-api/htdocs/mapdrive
+	#chmod -R 775 "/var/www/rest-api/config"
+	#chown -R root:www-data "/var/www/rest-api/config"
 	echo -n "Starting lighttpd: "
 	MODIFY_LIGHTTPD_CONFIG
 	setsid /usr/sbin/lighttpd-angel -D -f /etc/lighttpd/lighttpd.conf &

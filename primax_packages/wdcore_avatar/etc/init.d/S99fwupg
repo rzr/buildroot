@@ -7,14 +7,14 @@ RETVAL1=0
 ubifs=`df | grep "ubi0:rootfs " | wc -l`
 
 #check factory restore
-if [ -f "/etc/FacRestore" ] ; then
-    facrestore=`cat /etc/FacRestore`
-    if [ ${facrestore} == "compeleted" ] ; then
-        echo "Factory Restore Defaulted"
-        /usr/local/sbin/sendAlert.sh 2004
-        rm /etc/FacRestore
-    fi
-fi
+#if [ -f "/etc/FacRestore" ] ; then
+#    facrestore=`cat /etc/FacRestore`
+#    if [ ${facrestore} == "compeleted" ] ; then
+#        echo "Factory Restore Defaulted"
+#        /usr/local/sbin/sendAlert.sh 2004
+#        rm /etc/FacRestore
+#    fi
+#fi
 
 primax_fwupg()
 {

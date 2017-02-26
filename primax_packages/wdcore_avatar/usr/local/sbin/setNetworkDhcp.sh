@@ -13,9 +13,11 @@ PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 NorestartService=0
 tmp_conf=/etc/.tmp_netconf
 
-
+if [ "$1" == "" ]; then
+	iname=wlan0
+else
 while [ "$1" != "" ]; do
-	gw_mac=`echo ${1} | grep "gateway_mac_address="`
+	gw_mac=`echo "${1}" | grep "gateway_mac_address="`
 	if [ "${gw_mac}" == "" ]; then
 		iname=`echo ${1}`
    		if [ "${iname}" == "wlan0-connect" ]; then
@@ -32,6 +34,8 @@ while [ "$1" != "" ]; do
 	fi
 	shift
 done
+fi
+
 
 if [ "$gw_mac" == "" ] && [ "$iname" == "" ]; then
 	echo "usage: setNetworkDhcp.sh <iname>  gateway_mac_address=<gateway_mac_address>"

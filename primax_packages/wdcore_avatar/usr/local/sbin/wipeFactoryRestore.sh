@@ -57,9 +57,12 @@ fi
 if [ -f /usr/local/sbin/formatHDDMBR.sh ]; then
 	echo "inprogress 0" > /tmp/wipe-status
 	/usr/local/sbin/formatHDDparted.sh exfat llf >/dev/null 2>&1
-	#echo "complete" > /tmp/wipe-status
 	if [ -f $configFile ]; then
+        if [ -f "/etc/language.conf" ]; then
+            rm -f /etc/language.conf
+        fi
 		tar -xvf $configFile -C / >/dev/null 2>&1
+        #[ $? == "0" ] && echo "compeleted" > /etc/FacRestore
         if [ -f /etc/.eula_accepted ]; then
 		    rm /etc/.eula_accepted
         fi
@@ -78,6 +81,8 @@ if [ -f /usr/local/sbin/formatHDDMBR.sh ]; then
         #    rm -f /etc/.device_configured
         #fi
 	    reset_reg
+        echo "compeleted" > /etc/FacRestore
+        echo "29;1" > /tmp/MCU_Cmd 2>/dev/null
         exit 0
 	fi	
 else

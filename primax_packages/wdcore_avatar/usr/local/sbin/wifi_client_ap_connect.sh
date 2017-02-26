@@ -95,7 +95,6 @@ if [ "$option_connect" == "--connect" ]; then
   
   	RememberAP=`grep -rsi "\"${string_mac}\"" /etc/nas/config/wifinetwork-remembered.conf | grep -v 'signal_strength="0"'`
   	if [ "$RememberAP" != "" ]; then
-  		
   		RememberedConnect=1
   		cliSignal=`echo ${RememberAP} | awk 'BEGIN{FS="signal_strength=" } {print $NF}' | cut -d '"' -f 2`
 		if [ "$cliSignal" == "0" ]; then
@@ -745,7 +744,7 @@ if [ "$ChangeNetwork" == "false" ]; then
 			#rm /tmp/wifinetwork-remembered_tmp.conf
 			#fi
 			if [ "$option_connect" == "--connect" ]; then
-				conf_remember=`grep -rsi "\"${ssid_found}\"" /etc/nas/config/wifinetwork-remembered.conf | head -1`
+				conf_remember=`grep -rsw "\"${ssid_found}\"" /etc/nas/config/wifinetwork-remembered.conf | head -1`
 				if [ "${conf_remember}" != "" ]; then
 					if [ "$Debugmode" == "1" ]; then
 						timestamp=$(date "+%Y.%m.%d-%H.%M.%S")

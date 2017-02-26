@@ -15,6 +15,12 @@ PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 #---------------------
 # Begin Script
 #---------------------
+
+if [ -d "/etc/avahi/AvahiService" ] && [ ! -f "/etc/avahi/services/smb.service" ]; then
+	echo "InternetConnectionFailed"
+	exit 0
+fi
+
 ping -c 5 8.8.8.8 > /tmp/pingInternet
 cat /tmp/pingInternet | grep "100% packet loss" > /dev/null 2> /dev/null
 if [ $? == 0 ]; then

@@ -3,6 +3,9 @@
 # Starts hostapd.
 #
 source /etc/nas/config/wifinetwork-param.conf
+isConfigured=`/sbin/fw_printenv | grep MAC_ADDR | wc -l`
+MACA_ADDR=`/sbin/fw_printenv | grep MAC_ADDR | cut -d '=' -f 2`
+restartFlag=0
 
 NetworkParamCheck(){
 	if [ ! -f "/etc/nas/config/wifinetwork-param.conf" ]; then
@@ -44,9 +47,17 @@ NetworkDhcpdCheck(){
 }
 
 start() {
+	if [ "$restartFlag" == "0" ]; then
+		iw phy0 interface add wlan1 type managed
+		if [ "$isConfigured" == "1" ] ; then
+    		ifconfig wlan1 hw ether $MACA_ADDR
+		fi
+	fi
+
 	APmode=`/usr/local/sbin/wifi_ap_get_config.sh |grep "enabled=" | awk -F= '{print $2}'| awk '{print $1}'`
 	if [ "$APmode" == "true" ] || [ "$APmode" == \""true"\" ]; then
 		echo -n "Starting hostapd: "
+	
 		if [ ! -f "/tmp/ConnectionMode" ]; then
 			echo "ApMode" > /tmp/ConnectionMode
 		fi
@@ -103,6 +114,7 @@ case "$1" in
 	stop
 	;;
   restart|reload)
+  	restartFlag=1
 	restart
 	;;
   *)

@@ -38,6 +38,7 @@ deps_config := \
 	package/dosfstools/Config.in.host \
 	package/dfu-util/Config.in.host \
 	package/Config.in.host \
+	package/pmxpackage_filecache/Config.in \
 	package/pmxpackage_fwupg/Config.in \
 	package/pmxpackage_defaultsettings/Config.in \
 	package/pmxpackage_hiddenFile/Config.in \

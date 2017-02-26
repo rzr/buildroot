@@ -1,6 +1,6 @@
-diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/board.c uboot-custom-mod/board/ti/am335x/board.c
+diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/board.c uboot-custom-mod4/board/ti/am335x/board.c
 --- u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/board.c	2013-06-26 05:41:14.000000000 +0800
-+++ uboot-custom-mod/board/ti/am335x/board.c	2014-05-16 06:47:03.000000000 +0800
++++ uboot-custom-mod4/board/ti/am335x/board.c	2014-10-02 03:32:35.917686899 +0800
 @@ -603,7 +603,7 @@
  	pll_init();
  
@@ -18,7 +18,7 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/board.c uboot-custom-
 +	//enable_uart5_pin_mux();
  #endif /* CONFIG_SERIAL6 */
  
-+	printf("Configure AVATAR s_init\n");
++//	printf("Configure AVATAR s_init\n");
 +	strcpy(header.name,"A335BNLT");
 +    enable_board_pin_mux(&header);
 +
@@ -31,7 +31,7 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/board.c uboot-custom-
  	gd = &gdata;
 -
  	preloader_console_init();
-+    puts("AFter preloader_console_init()\n");
++//    puts("AFter preloader_console_init()\n");
  #endif
  
  	/* Initalize the board header */
@@ -119,7 +119,21 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/board.c uboot-custom-
  	if (!strncmp("A335X_SK", header.name, HDR_NAME_LEN)) {
  		/*
  		 * EVM SK 1.2A and later use gpio0_7 to enable DDR3.
-@@ -728,13 +743,14 @@
+@@ -722,19 +737,28 @@
+ #endif
+ }
+ 
++#ifndef CONFIG_SYS_DCACHE_OFF
++void enable_caches(void)
++{
++    /* Enable D-cache. I-cache is already enabled in start.S */
++    dcache_enable();
++}
++#endif
++
+ /*
+  * Basic board specific setup.  Pinmux has been handled already.
+  */
  int board_init(void)
  {
  	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
@@ -136,7 +150,7 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/board.c uboot-custom-
  	return 0;
  }
  
-@@ -799,6 +815,7 @@
+@@ -799,6 +823,7 @@
  };
  #endif
  
@@ -144,15 +158,15 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/board.c uboot-custom-
  #if defined(CONFIG_DRIVER_TI_CPSW) || \
  	(defined(CONFIG_USB_ETHER) && defined(CONFIG_MUSB_GADGET))
  int board_eth_init(bd_t *bis)
-@@ -878,3 +895,5 @@
+@@ -878,3 +903,5 @@
  	return n;
  }
  #endif
 +#endif //if 0
 +
-diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/mux.c uboot-custom-mod/board/ti/am335x/mux.c
+diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/mux.c uboot-custom-mod4/board/ti/am335x/mux.c
 --- u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/mux.c	2013-06-26 05:41:14.000000000 +0800
-+++ uboot-custom-mod/board/ti/am335x/mux.c	2014-05-16 06:46:44.000000000 +0800
++++ uboot-custom-mod4/board/ti/am335x/mux.c	2014-10-02 03:32:35.917686899 +0800
 @@ -134,6 +134,27 @@
  	{-1},
  };
@@ -185,7 +199,7 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/mux.c uboot-custom-mo
  
  void enable_board_pin_mux(struct am335x_baseboard_id *header)
  {
-+	printf("***ENABLE AVATAR pinmux***");
++//	printf("***ENABLE AVATAR pinmux***");
  	/* Do board-specific muxes. */
  	if (!strncmp(header->name, "A335BONE", HDR_NAME_LEN)) {
  		/* Beaglebone pinmux */
@@ -212,7 +226,7 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/mux.c uboot-custom-mo
 +		//configure_module_pin_mux(rgmii1_pin_mux);
  		configure_module_pin_mux(mmc0_pin_mux_sk_evm);
  	} else if (!strncmp(header->name, "A335BNLT", HDR_NAME_LEN)) {
-+		printf("***Configure A335BNLT pinmux***");
++//		printf("***Configure A335BNLT pinmux***");
  		/* Beaglebone LT pinmux */
  		configure_module_pin_mux(i2c1_pin_mux);
 -		configure_module_pin_mux(mii1_pin_mux);
@@ -226,9 +240,9 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/board/ti/am335x/mux.c uboot-custom-mo
  	} else {
  		puts("Unknown board, cannot configure pinmux.");
  		hang();
-diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/cmd_bootm.c uboot-custom-mod/common/cmd_bootm.c
+diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/cmd_bootm.c uboot-custom-mod4/common/cmd_bootm.c
 --- u-boot-2013.01.01-psp06.00.00.00/common/cmd_bootm.c	2013-06-26 05:41:14.000000000 +0800
-+++ uboot-custom-mod/common/cmd_bootm.c	2014-04-17 19:18:06.000000000 +0800
++++ uboot-custom-mod4/common/cmd_bootm.c	2014-10-02 03:32:35.917686899 +0800
 @@ -625,9 +625,11 @@
  			return do_bootm_subcommand(cmdtp, flag, argc, argv);
  	}
@@ -243,9 +257,9 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/cmd_bootm.c uboot-custom-mod/c
  	/*
  	 * We have reached the point of no return: we are going to
  	 * overwrite all exception vector code, so we cannot easily
-diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/main.c uboot-custom-mod/common/main.c
+diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/main.c uboot-custom-mod4/common/main.c
 --- u-boot-2013.01.01-psp06.00.00.00/common/main.c	2013-06-26 05:41:14.000000000 +0800
-+++ uboot-custom-mod/common/main.c	2014-05-16 06:45:59.000000000 +0800
++++ uboot-custom-mod4/common/main.c	2014-10-03 17:02:40.268926898 +0800
 @@ -52,6 +52,7 @@
  #include <post.h>
  #include <linux/ctype.h>
@@ -267,6 +281,7 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/main.c uboot-custom-mod/common
  #endif /* CONFIG_OF_CONTROL */
  
  	debug ("### main_loop: bootcmd=\"%s\"\n", s ? s : "<UNDEFINED>");
+-
 +	//For Avatar D2 Board
 +	gpio_direction_output(0,0);
 +	gpio_direction_output(1,0);
@@ -283,7 +298,7 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/main.c uboot-custom-mod/common
 +		gpio_direction_input(3);
 +		wd_btn_gpio = 1;
 +	}
- 
++    bootdelay=0;
  	if (bootdelay != -1 && s && !abortboot(bootdelay)) {
  # ifdef CONFIG_AUTOBOOT_KEYED
  		int prev = disable_ctrlc(1);	/* disable Control C checking */
@@ -323,9 +338,9 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/common/main.c uboot-custom-mod/common
  #else
  	/*
  	 * This function will overwrite any \n it sees with a \0, which
-diff -Nur u-boot-2013.01.01-psp06.00.00.00/drivers/net/cpsw.c uboot-custom-mod/drivers/net/cpsw.c
+diff -Nur u-boot-2013.01.01-psp06.00.00.00/drivers/net/cpsw.c uboot-custom-mod4/drivers/net/cpsw.c
 --- u-boot-2013.01.01-psp06.00.00.00/drivers/net/cpsw.c	2013-06-26 05:41:14.000000000 +0800
-+++ uboot-custom-mod/drivers/net/cpsw.c	2014-03-14 18:58:39.000000000 +0800
++++ uboot-custom-mod4/drivers/net/cpsw.c	2014-10-02 03:32:35.917686899 +0800
 @@ -452,6 +452,8 @@
  	u32 reg = 0;
  	int timeout = MDIO_TIMEOUT;
@@ -335,3 +350,90 @@ diff -Nur u-boot-2013.01.01-psp06.00.00.00/drivers/net/cpsw.c uboot-custom-mod/d
  	while (timeout-- &&
  	((reg = __raw_readl(&mdio_regs->user[0].access)) & USERACCESS_GO))
  		udelay(10);
+diff -Nur u-boot-2013.01.01-psp06.00.00.00/drivers/usb/musb-new/musb_core.c uboot-custom-mod4/drivers/usb/musb-new/musb_core.c
+--- u-boot-2013.01.01-psp06.00.00.00/drivers/usb/musb-new/musb_core.c	2013-06-26 05:41:14.000000000 +0800
++++ uboot-custom-mod4/drivers/usb/musb-new/musb_core.c	2014-10-02 03:32:35.917686899 +0800
+@@ -1406,6 +1406,7 @@
+  */
+ static int __devinit musb_core_init(u16 musb_type, struct musb *musb)
+ {
++    return 0;
+ 	u8 reg;
+ 	char *type;
+ 	char aInfo[90], aRevision[32], aDate[12];
+@@ -2477,7 +2478,7 @@
+ 
+ static int __init musb_init(void)
+ {
+-	if (usb_disabled())
++    if (usb_disabled())
+ 		return 0;
+ 
+ 	pr_info("%s: version " MUSB_VERSION ", "
+diff -Nur u-boot-2013.01.01-psp06.00.00.00/include/configs/am335x_evm.h uboot-custom-mod4/include/configs/am335x_evm.h
+--- u-boot-2013.01.01-psp06.00.00.00/include/configs/am335x_evm.h	2013-06-26 05:41:15.000000000 +0800
++++ uboot-custom-mod4/include/configs/am335x_evm.h	2014-10-02 03:32:35.917686899 +0800
+@@ -51,7 +51,8 @@
+ #define CONFIG_VERSION_VARIABLE
+ 
+ /* set to negative value for no autoboot */
+-#define CONFIG_BOOTDELAY		1
++#define CONFIG_BOOTDELAY		0
++#define CONFIG_ZERO_BOOTDELAY_CHECK
+ #define CONFIG_ENV_VARS_UBOOT_CONFIG
+ #define CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
+ #ifndef CONFIG_SPL_BUILD
+@@ -228,10 +229,6 @@
+ #define CONFIG_SYS_LOAD_ADDR		0x81000000 /* Default load address */
+ #define CONFIG_SYS_HZ			1000 /* 1ms clock */
+ 
+-#define CONFIG_MMC
+-#define CONFIG_GENERIC_MMC
+-#define CONFIG_OMAP_HSMMC
+-#define CONFIG_CMD_MMC
+ #define CONFIG_DOS_PARTITION
+ #define CONFIG_CMD_FAT
+ #define CONFIG_FAT_WRITE
+@@ -257,7 +254,6 @@
+ 
+ /* USB Device Firmware Update support */
+ #define CONFIG_DFU_FUNCTION
+-#define CONFIG_DFU_MMC
+ #define CONFIG_DFU_NAND
+ #define CONFIG_CMD_DFU
+ #define DFU_ALT_INFO_MMC \
+@@ -298,10 +294,6 @@
+ #define CONFIG_SYS_NS16550_CLK		(48000000)
+ #define CONFIG_SYS_NS16550_COM1		0x44e09000	/* Base EVM has UART0 */
+ #define CONFIG_SYS_NS16550_COM2		0x48022000	/* UART1 */
+-#define CONFIG_SYS_NS16550_COM3		0x48024000	/* UART2 */
+-#define CONFIG_SYS_NS16550_COM4		0x481a6000	/* UART3 */
+-#define CONFIG_SYS_NS16550_COM5		0x481a8000	/* UART4 */
+-#define CONFIG_SYS_NS16550_COM6		0x481aa000	/* UART5 */
+ 
+ /* I2C Configuration */
+ #define CONFIG_I2C
+@@ -343,7 +335,6 @@
+ #define CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS	0x200 /* 256 KB */
+ #define CONFIG_SYS_MMC_SD_FAT_BOOT_PARTITION	1
+ #define CONFIG_SPL_FAT_LOAD_PAYLOAD_NAME	"u-boot.img"
+-#define CONFIG_SPL_MMC_SUPPORT
+ #define CONFIG_SPL_FAT_SUPPORT
+ #define CONFIG_SPL_I2C_SUPPORT
+ 
+@@ -362,7 +353,6 @@
+ #define CONFIG_SPL_SPI_BUS		0
+ #define CONFIG_SPL_SPI_CS		0
+ #define CONFIG_SYS_SPI_U_BOOT_OFFS	0x80000
+-#define CONFIG_SPL_MUSB_NEW_SUPPORT
+ #define CONFIG_SPL_LDSCRIPT		"$(CPUDIR)/omap-common/u-boot-spl.lds"
+ 
+ #define CONFIG_SPL_BOARD_INIT
+@@ -424,7 +414,6 @@
+  * USB configuration
+  */
+ #define CONFIG_USB_MUSB_DSPS
+-#define CONFIG_ARCH_MISC_INIT
+ #define CONFIG_MUSB_GADGET
+ #define CONFIG_MUSB_PIO_ONLY
+ #define CONFIG_USB_GADGET_DUALSPEED

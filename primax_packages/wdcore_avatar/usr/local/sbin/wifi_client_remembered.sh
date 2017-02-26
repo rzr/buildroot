@@ -44,7 +44,6 @@ if [ ! -f "/tmp/wifi_client_remembered_execute" ]; then
 	fi
 	/sbin/ifup wlan0
 	connectedmac=`wpa_cli -i wlan0 status | grep -rsw "bssid" | awk -F= '{print $NF}' | tr [:lower:] [:upper:]`
-	
 	connectStatus=`wpa_cli -i wlan0 status | grep -rsi wpa_state | awk -F= '{print $NF}'`
 	#connectedip=`wpa_cli -i wlan0 status | grep -rsw "ip_address" | awk -F= '{print $NF}'`
 	

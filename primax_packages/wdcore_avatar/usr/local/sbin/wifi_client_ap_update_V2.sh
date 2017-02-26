@@ -292,6 +292,7 @@ if [ "$opt_trusted" == "true" ]; then
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 21 -j DROP
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 53 -j DROP
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 443 -j DROP
+					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 9443 -j DROP
 				fi
 				if [ "$Debugmode" == "1" ]; then
 					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
@@ -321,6 +322,7 @@ if [ "$opt_trusted" == "true" ]; then
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 21 -j DROP
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 53 -j DROP
 					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 443 -j DROP
+					/usr/sbin/iptables -D INPUT -i wlan0 -p tcp --dport 9443 -j DROP
 					
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 80 -j DROP 
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 5353 -j DROP
@@ -335,6 +337,7 @@ if [ "$opt_trusted" == "true" ]; then
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 21 -j DROP
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 53 -j DROP
 					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 443 -j DROP
+					/usr/sbin/iptables -A INPUT -i wlan0 -p tcp --dport 9443 -j DROP
 				fi
 				if [ "$Debugmode" == "1" ]; then
 					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")

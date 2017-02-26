@@ -32,7 +32,6 @@ case "$1" in
 	insmod /lib/modules/3.2.0/extra/drivers/net/wireless/ti/wl18xx/wl18xx.ko
 	NetworkParamCheck
 	source /etc/nas/config/wifinetwork-param.conf
-	sleep 3
 	if [ $isConfigured == "1" ] ; then
 	    echo 40 > /sys/class/gpio/export
 	    echo 41 > /sys/class/gpio/export
@@ -52,14 +51,6 @@ case "$1" in
 		    fi
 	    fi
     fi
-
-	if [ ${STA_CLIENT} == "true" ]; then
-		ifconfig wlan0 up > /dev/null 2>&1
-	fi
-	iw phy0 interface add $AP_IFACE type managed
-	if [ $isConfigured == "1" ] ; then
-		ifconfig wlan1 hw ether $MACA_ADDR
-	fi
 	;;
   stop)
 	;;

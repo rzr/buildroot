@@ -24,6 +24,7 @@ fi
 start_scan=0
 tempDisable=1
 currentstate=0
+WEP_Fail=0
 connectStatus="INACTIVE"
 
 if [ "$STA_CLIENT" == "true" ]; then 
@@ -46,6 +47,14 @@ if [ "$STA_CLIENT" == "true" ]; then
 	connectStatus=`wpa_cli -i wlan0 status | grep -rsi wpa_state | awk -F= '{print $NF}'`
 	if [ "$connectStatus" != "COMPLETED" ]; then
 		`wpa_cli -i wlan0 disable_network 0 > /dev/null`
+	else
+		connectedCipher=`wpa_cli -i wlan0 status | grep -rsw "pairwise_cipher" | awk -F= '{print $NF}'`
+		if [ "$connectedCipher" == "WEP-40" ] || [ "$connectedCipher" == "WEP-104" ]; then
+			networkConfig=`/usr/local/sbin/getNetworkConfig.sh`
+			if [ "$networkConfig" == "disconnected" ]; then
+				WEP_Fail=1
+			fi
+		fi
 	fi
 else	
 	if [ "$1" == "--current" ]; then
@@ -146,8 +155,8 @@ if [ "$start_scan" == "1" ]; then
 		
 		#cat /etc/nas/config/wifinetwork-remembered.conf > /tmp/scan_result
 		sed -i 's/connected="true"./connected="false" /' /etc/nas/config/wifinetwork-remembered.conf
-		#sed -i 's/connected="true"./connected="false" /' /tmp/scan_result
-		if [ "$connectStatus" == "COMPLETED" ]; then
+		sed -i 's/connected="true"./connected="false" /' /tmp/scan_temp
+		if [ "$connectStatus" == "COMPLETED" ] && [ "$WEP_Fail" == "0" ]; then
 			connectedessid=`wpa_cli -i wlan0 status | grep -rsw "bssid" | awk -F= '{print $NF}' | tr [:lower:] [:upper:]`
 			iwconfigSsid=`iwconfig wlan0 | grep ESSID`
 			echo ${iwconfigSsid:33} > /tmp/iwconfigSsid
@@ -174,8 +183,9 @@ if [ "$start_scan" == "1" ]; then
 				#cliremembered=`cat /tmp/wifinetwork-remembered.conf | awk 'BEGIN{FS="remembered=" } {print $NF}' | cut -d '"' -f 2`
 				#cliconnect=`cat /tmp/wifinetwork-remembered.conf | awk 'BEGIN{FS="connected=" } {print $NF}' | cut -d '"' -f 2`
 				#if [ "$cliconnect" == "true" ] && [ "$cliremembered" == "false" ]; then 
+				if [ "$connectStatus" == "COMPLETED" ] && [ "$WEP_Fail" == "0" ]; then	
 					cat /tmp/wifinetwork-remembered.conf > /tmp/scan_replace_list
-				#fi
+				fi
 			fi
 		fi
 		
@@ -337,53 +347,61 @@ if [ "$b_current" == "true" ]; then
 		if [ "connectedemac" != "" ] && [ "connectedessid" != "" ]; then
 			cat /etc/nas/config/wifinetwork-remembered.conf | while read lineProfile
 			do
-				echo $lineProfile > /tmp/wifinetwork-remembered_tmp.conf
-				rememberSsid=`echo ${lineProfile} | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2`
-				rememberMAC=`echo ${lineProfile} | awk 'BEGIN{FS="mac=" } {print $NF}' | cut -d '"' -f 2`			
+				echo "${lineProfile}" > /tmp/wifinetwork-remembered_current.conf
+				rememberSsid=`echo "${lineProfile}" | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2`
+				rememberMAC=`echo "${lineProfile}" | awk 'BEGIN{FS="mac=" } {print $NF}' | cut -d '"' -f 2`			
 				if [ "$Debugmode" == "1" ]; then
 					timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
 					echo $timestamp ": wifi_client_ap_scan.sh Check Current" "$connectedessid" "$rememberMAC" "$rememberSsid" "\"$connectedemac"\" >> /tmp/wificlientap.log
 				fi
 				#grep -rsi "\"${connectedessid}\"" /tmp/wifinetwork-remembered_tmp.conf | grep -rsw "${connectedemac}" /tmp/wifinetwork-remembered_tmp.conf > /dev/null
 				if [ "$connectedessid" == "$rememberMAC" ] && [ "$rememberSsid" == "\"$connectedemac"\" ]; then
-					sed -i '/'\""${connectedessid}"\"'/ s/connected="false"./connected="true" /' /tmp/wifinetwork-remembered_tmp.conf
-					cat /tmp/wifinetwork-remembered_tmp.conf | awk 'BEGIN {FS="bssi/dmap="} {print $1}' > /tmp/scan_current
+					sed -i '/'\""${connectedessid}"\"'/ s/connected="false"./connected="true" /' /tmp/wifinetwork-remembered_current.conf
+					cat /tmp/wifinetwork-remembered_current.conf | awk 'BEGIN {FS="bssi/dmap="} {print $1}' > /tmp/scan_current
 					if [ "$Debugmode" == "1" ]; then
 						timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
 						profileleft=`cat /tmp/scan_current`
 						echo $timestamp ": wifi_client_ap_scan.sh -- current from SaveProfile /etc/nas/config/wifinetwork-remembered" >> /tmp/wificlientap.log
 						echo $timestamp ": wifi_client_ap_scan.sh" $profileleft >> /tmp/wificlientap.log
 					fi
-					rm /tmp/wifinetwork-remembered_tmp.conf
+					if [ -f "/tmp/wifinetwork-remembered_current.conf" ]; then
+						rm /tmp/wifinetwork-remembered_current.conf
+					fi
 					exit 0
 				fi
-				rm /tmp/wifinetwork-remembered_tmp.conf
+				if [ -f "/tmp/wifinetwork-remembered_current.conf" ]; then
+					rm /tmp/wifinetwork-remembered_current.conf
+				fi
 			done
 			
 			if [ ! -f "/tmp/scan_current" ]; then
 				cat /tmp/wifinetwork-remembered.conf | while read lineProfile
 				do
-					echo $lineProfile > /tmp/wifinetwork-remembered_tmp.conf
-					rememberSsid=`echo ${lineProfile} | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2`
-					rememberMAC=`echo ${lineProfile} | awk 'BEGIN{FS="mac=" } {print $NF}' | cut -d '"' -f 2`
+					echo $lineProfile > /tmp/wifinetwork-remembered_current.conf
+					rememberSsid=`echo "${lineProfile}" | awk 'BEGIN{FS=" mac=" }{print $1}' | cut -d '=' -f 2`
+					rememberMAC=`echo "${lineProfile}" | awk 'BEGIN{FS="mac=" } {print $NF}' | cut -d '"' -f 2`
 					if [ "$connectedessid" == "$rememberMAC" ] && [ "$rememberSsid" == "\"$connectedemac"\" ]; then
 						`grep -rsi "\"${connectedessid}\"" /etc/nas/config/wifinetwork-remembered.conf > /dev/null`
 						if [ "$?" != 0 ]; then
-							sed -i 's/remembered="true"./remembered="false" /' /tmp/wifinetwork-remembered_tmp.conf
-							sed -i 's/remembered="false"./remembered="false" /' /tmp/wifinetwork-remembered_tmp.conf
+							sed -i 's/remembered="true"./remembered="false" /' /tmp/wifinetwork-remembered_current.conf
+							sed -i 's/remembered="false"./remembered="false" /' /tmp/wifinetwork-remembered_current.conf
 						fi
-						sed -i '/'\""${connectedessid}"\"'/ s/connected="false"./connected="true" /' /tmp/wifinetwork-remembered_tmp.conf
-						cat /tmp/wifinetwork-remembered_tmp.conf | awk 'BEGIN {FS="bssi/dmap="} {print $1}'
+						sed -i '/'\""${connectedessid}"\"'/ s/connected="false"./connected="true" /' /tmp/wifinetwork-remembered_current.conf
+						cat /tmp/wifinetwork-remembered_current.conf | awk 'BEGIN {FS="bssi/dmap="} {print $1}'
 						if [ "$Debugmode" == "1" ]; then
-							profileleft=`cat /tmp/wifinetwork-remembered_tmp.conf`
+							profileleft=`cat /wifinetwork-remembered_current.conf`
 							timestamp=$(date "+%Y.%m.%d-%H.%M.%S")
 							echo $timestamp ": wifi_client_ap_scan.sh -- current from unSaveProfile /tmp/wifinetwork-remembered" >> /tmp/wificlientap.log
 							echo $timestamp ": wifi_client_ap_scan.sh" $profileleft >> /tmp/wificlientap.log
 						fi
-						rm /tmp/wifinetwork-remembered_tmp.conf
+						if [ -f "/tmp/wifinetwork-remembered_current.conf" ]; then
+							rm /tmp/wifinetwork-remembered_current.conf
+						fi
 						exit 0
 					fi
-					rm /tmp/wifinetwork-remembered_tmp.conf
+					if [ -f "/tmp/wifinetwork-remembered_current.conf" ]; then
+						rm /tmp/wifinetwork-remembered_current.conf
+					fi
 				done
 			else
 				cat /tmp/scan_current

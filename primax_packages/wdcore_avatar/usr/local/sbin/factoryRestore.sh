@@ -48,12 +48,12 @@ reset_reg()
 	fi
 }
 
-AC_check_50_percent()
+AC_check_25_percent()
 {
     echo "12;0;" > /tmp/MCU_Cmd
     AC=`cat /tmp/battery  | awk '{print $1}'`
     BatLevel=`cat /tmp/battery  | awk '{print $2}'`
-    if [ ${BatLevel} -lt 25 ] && [ ${AC} == "discharging" ]; then
+    if [ ${BatLevel} -lt 25 ]; then
         echo  "insufficient_power"> /tmp/wipe-status
         exit 11
     fi
@@ -84,13 +84,13 @@ if [ "$1" != "noreformat" ]; then
 	exit 1
 fi
 
-AC_check_50_percent
+AC_check_25_percent
 if [ -f $configFile ] && [ ! -f /tmp/reset_done ]; then
+    if [ -f "/etc/language.conf" ]; then
+        rm -f /etc/language.conf
+    fi
     tar -xvf $configFile -C / >/dev/null 2>&1
-    [ $? == "0" ] && echo "compeleted" > /etc/FacRestore
-    #[ $? == "0" ] && /usr/local/sbin/killService.sh hdd >/dev/null 2>&1
-    #sleep 1
-    #[ $? == "0" ] && /usr/local/sbin/startService.sh hdd >/dev/null 2>&1
+    #[ $? == "0" ] && echo "compeleted" > /etc/FacRestore
     if [ -f /etc/.eula_accepted ]; then
         rm /etc/.eula_accepted
     fi
@@ -117,6 +117,8 @@ if [ -f $configFile ] && [ ! -f /tmp/reset_done ]; then
         rm -f /etc/nas/.product_improvement_opt_in
     fi
     reset_reg
+    echo "compeleted" > /etc/FacRestore
+    echo "29;1" > /tmp/MCU_Cmd 2>/dev/null
     echo "0" > /tmp/reset_done
 else
     exit 1

@@ -57,6 +57,10 @@ pre-update_error()
     sleep 1
     echo "11;0;" > /tmp/MCU_Cmd
     start_all_services
+    isFromWebUI=`echo "${filename}" | grep "/CacheVolume" | wc -l`
+    if [ ${isFromWebUI} -eq "1" ]; then
+        rm -f ${filename}
+    fi
     exit 1
 }
 
@@ -87,8 +91,11 @@ pkg_upgrade_init()
 pkg_upgrade_exec()
 {
     tar xvfz "${filename}" -C /tmp 2>&1
+    if [ $? != "0" ]; then
+        pre-update_error "failed 200 \"invalid firmware package\""
+    fi
     if [ ! -f /tmp/fwupg_images/upgrade.sh ]; then
-        update_error "failed 200 \"invalid firmware package\""
+        pre-update_error "failed 200 \"invalid firmware package\""
     fi
     /tmp/fwupg_images/upgrade.sh 2>&1 | tee -a ${updatelog}
     status=$?
@@ -181,6 +188,12 @@ uplog "check_size=${check_size}"
 # Cleanup Cache file
 echo 1 > /tmp/CacheMgrFile
 echo 3 > /proc/sys/vm/drop_caches
+
+# Check FW crc using gunzip bypass tar.gz recover method
+gunzip -t "${filename}"
+if [ $? != "0" ]; then
+    pre-update_error "failed 200 \"invalid firmware package\""
+fi
 
 # check disk usage
 fwUpdateSpace=`tar vtzf "${filename}" | awk '{SUM += $3} END {print SUM}'`

@@ -109,6 +109,14 @@ restart() {
 	start
 }	
 
+
+report_status(){
+	Current_mode=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`
+	Current_speed=`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq`
+	#echo -n "Current_mode=""$Current_mode "
+	echo "Current_speed=""$Current_speed"
+}
+
 case "$1" in
   start)
   	start
@@ -119,6 +127,9 @@ case "$1" in
   restart)
   	restart
 	;;
+  status)
+  	report_status
+  	;;
   *)
 	echo "Usage: $0 {start|stop|restart}"
 	exit 1

@@ -6,17 +6,19 @@
 source /etc/nas/config/wifinetwork-param.conf
 restart=0
 start() {
-	
+	echo "7 1 4 7" > /proc/sys/kernel/printk
 	if [ ! -f "/tmp/ApCliRetry" ]; then
 		echo 0 > /tmp/ApCliRetry
 	fi
+	#if [ ! -f "/tmp/WiFiClientApDebugModeEnabledLog" ]; then
+	#	touch /tmp/WiFiClientApDebugModeEnabledLog
+	#fi
 
 	if [ ${STA_CLIENT} == "true" ]; then
 		if [ -f "/tmp/clientStatus" ]; then
 			rm /tmp/clientStatus
 		fi
 		/sbin/ifconfig wlan0 up
-		echo "Regenerate wpa supplicant conf"		
 		echo -n "Starting multi-role: "    
 		/etc/init.d/S45ifplugd restart	
 	
@@ -61,7 +63,7 @@ start() {
 	if [ ! -f "/tmp/wifinetwork-remembered.conf" ]; then
 		ConnNum=`cat /etc/nas/config/wifinetwork-remembered.conf | wc -l`
 		if [ "$ConnNum" != "0" ]; then
-			/usr/local/sbin/wifi_client_ap_scan.sh --remembered signalConnect > /tmp/RememberNetwork1
+			/usr/local/sbin/wifi_client_ap_scan.sh --remembered signalConnect > /tmp/RememberNetwork1 2>&1 &
 			/usr/local/sbin/wifi_client_ap_retry.sh 2 >/dev/null 2>&1 &
 		fi
 		#cat /etc/nas/config/wifinetwork-remembered.conf | head -1  > /tmp/wifinetwork-remembered.conf

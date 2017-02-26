@@ -18,8 +18,6 @@ define LIBUPNP_INSTALL_TARGET_CMDS
 	if [ ! -d $(TARGET_DIR)/usr/local/upnp ]; then \
 		mkdir -p $(TARGET_DIR)/usr/local/upnp; \
 		cp -a $(@D)/upnp/sample/upnp_nas_device $(TARGET_DIR)/usr/local/upnp/; \
-		cp -Rf $(@D)/upnp/sample/web $(TARGET_DIR)/usr/local/upnp/web_wlan0; \
-		cp -a package/libupnp/nasdevicedesc.xml $(TARGET_DIR)/usr/local/upnp/web_wlan0/; \
 		cp -Rf $(@D)/upnp/sample/web $(TARGET_DIR)/usr/local/upnp/web_wlan1; \
 		cp -a package/libupnp/nasdevicedesc.xml $(TARGET_DIR)/usr/local/upnp/web_wlan1/; \
 	fi
