@@ -37,10 +37,20 @@ format(){
 	/usr/local/sbin/stopFUSE.sh
 	umount /media/SDcard
 	umount /media/AFPSDcard
+    HDD=${hdd:5:7}
+	size=`cat /sys/block/$HDD/size`
 	wipefs -ap $hdd;
-	parted $hdd mktable msdos -s
-	parted $hdd mkpart primary NTFS 0 100% -s
 	sleep 1
+	wipefs -ap ${hdd}1;
+	if [ $size -gt 3984588800 ]; then #big then 2T
+	     parted $hdd mktable gpt -s
+         #use ntfs for 3T default
+         FS="ntfs"
+	else
+	     parted $hdd mktable msdos -s
+    fi
+	parted $hdd mkpart primary NTFS 0% 100% -s
+	sleep 3
 	mdev -s
 	sleep 5
 	case $FS in
@@ -50,9 +60,10 @@ format(){
 			"|mkexfat ${hdd}1 -v:"My Passport";
 			;;
 		"ntfs")
-			echo "y
-			
-			"|mkntfs ${hdd}1 -v:"My Passport";
+			#echo "y
+			#
+			#"|mkntfs ${hdd}1 -v:"My Passport";
+            mkfs.ntfs -f ${hdd}1 -L "My Passport";
 			;;
 	esac
 	sleep 3;

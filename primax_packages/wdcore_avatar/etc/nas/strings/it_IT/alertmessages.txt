@@ -44,3 +44,7 @@
 2009D = Il dispositivo è stato disconnesso dall'hotspot Wi-fi, la connessione Internet non è pertanto più disponibile.
 2010  = Sincronizzazione scheda SD arrestata
 2010D = Il dispositivo non è stato in grado di sincronizzare il contenuto dalla scheda SD. Lo spazio di archiviazione dell'hard disc del dispositivo è completo.
+2011  = Abbassamento capacità della batteria
+2011D = Per aumentare al massimo la durata della batteria ricaricabile, la capacità è stata automaticamente abbassata all'80% a causa di un periodo prolungato di inattività e di carica continua. Per ripristinare la carica, scollegare e collegare nuovamente il dispositivo alla fonte di alimentazione.
+2012  = Temperatura dispositivo eccessiva
+2012D = La temperatura del dispositivo è superiore al valore massimo specificato. Spostare il dispositivo in un luogo più fresco. La capacità della batteria è stata automaticamente abbassata all'80% per aumentare al massimo la durata della batteria ricaricabile.

@@ -44,3 +44,7 @@
 2009D = Aygıtın kablosuz erişim alanıyla bağlantısı kesildi, bu yüzden Internet bağlantısı artık mevcut değil.
 2010  = SD Kart Eşitlemesi Durduruldu
 2010D = Aygıt SD karttan içerik eşitleyemedi. Aygıtın sabit disk depolama alanı dolu.
+2011  = Pil kapasitesi düşürüldü
+2011D = Pil kapasitesi, yeniden şarj edilebilir pilin ömrünün en yüksek düzeye çıkarılmasına yardımcı olmak için ve uzun süreli hareketsizlik ve sürekli şarj nedeniyle otomatik olarak %80'e düşürüldü. Şarj işlemine devam etmek için aygıtı güç kaynağından çıkarıp tekrar takın.
+2012  = Aygıt sıcaklığı yüksek
+2012D = Aygıt sıcaklığı belirlenen maksimum sıcaklık değerinin üzerinde. Aygıtı daha serin bir yere taşıyın. Yeniden şarj edilebilir pilin ömrünün en yüksek düzeye çıkarılmasına yardımcı olmak için pil kapasitesi otomatik olarak %80'e düşürüldü.

@@ -44,3 +44,7 @@
 2009D = Az eszköz lecsatlakozott a Wi-Fi elérési pontról, ezért már nem érhető el az internet.
 2010  = Leállt az SD-kártya szinkronizálása
 2010D = Az eszköz nem tudta szinkronizálni a tartalmat az SD-kártyáról. Az eszköz merevlemeze megtelt.
+2011  = Csökkentett akkumulátor kapacitás
+2011D = A tölthető akkumulátor élettartamának megnövelése érdekében az akkumulátor kapacitását automatikusan lecsökkentettük 80%-ra, mivel hosszú ideje használaton kívül van és folyamatosan töltődik. A töltés folytatásához húzza ki, majd csatlakoztassa újra az eszközt az áramforráshoz.
+2012  = Túl magas az eszköz hőmérséklete
+2012D = Az eszköz hőmérséklete magasabb a meghatározott maximális hőmérsékletnél. Helyezze az eszközt hűvösebb környezetbe. Az akkumulátor kapacitását automatikusan lecsökkentettük 80%-ra, hogy megnöveljük az élettartamát.

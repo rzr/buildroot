@@ -44,3 +44,7 @@
 2009D = Das Gerät wurde vom Wi-Fi-Hotspot getrennt, daher ist die Internetverbindung nicht mehr verfügbar.
 2010  = Synchronisieren der SD-Karte unterbrochen
 2010D = Das Gerät konnte nicht mit der SD-Karte synchronisiert werden. Der Festplattenspeicher des Geräts ist voll.
+2011  = Batteriekapazität verringert
+2011D = Zur Verlängerung der Batterielaufzeit der wiederaufladbaren Batterie wurde die Batteriekapazität automatisch um 80 % verringert, da sie über einen längeren Zeitraum nicht genutzt und kontinuierlich geladen wurde. Trennen Sie zum Fortsetzen des Ladevorgangs das Gerät von der Stromversorgung und schließen Sie es erneut an.
+2012  = Gerät zu warm
+2012D = Die Gerätetemperatur ist höher als die angegebene Höchsttemperatur. Bitte bringen Sie das Gerät an einen kühleren Standort. Die Batteriekapazität wurde automatisch um 80 % verringert, um die Batterielaufzeit der wiederaufladbaren Batterie zu verlängern.

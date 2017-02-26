@@ -295,17 +295,19 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 					fi
 				done
 			else
+				execmd="nice -n -19 mv -f /media/SDcard/.[^.]* \"${SDcard}/\" > /dev/null 2>&1"
+				eval "$execmd"
+				
 				execmd="nice -n -19 mv -f /media/SDcard/* \"${SDcard}/\" > /dev/null 2>&1"
 				eval "$execmd"
 				if [ $? != 0 ]; then
 					echo "1" > /tmp/SDStatusError
 				fi
 				
-				execmd="nice -n -19 mv -f /media/SDcard/.[^.]* \"${SDcard}/\" > /dev/null 2>&1"
-				eval "$execmd"
-				if [ $? != 0 ]; then
-					echo "1" > /tmp/SDStatusError
-				fi
+				
+				#if [ $? != 0 ]; then
+				#	echo "1" > /tmp/SDStatusError
+				#fi
 				#echo "$execmd"
 			fi		
 		
@@ -441,16 +443,15 @@ if [ "$method" == "move" ] || [ "$method" == "copy" ]; then
 					fi
 				done
 			else
+				execmd="nice -n -19 cp -a /media/SDcard/.[^.]* \"${SDcard}/\" > /dev/null 2>&1"
+				eval "$execmd"
+				
 				execmd="nice -n -19 cp -a /media/SDcard/* \"${SDcard}/\" > /dev/null 2>&1"
 				eval "$execmd"
 				if [ $? != 0 ]; then
 					echo "1" > /tmp/SDStatusError
 				fi
-				execmd="nice -n -19 cp -a /media/SDcard/.[^.]* \"${SDcard}/\" > /dev/null 2>&1"
-				eval "$execmd"
-				if [ $? != 0 ]; then
-					echo "1" > /tmp/SDStatusError
-				fi
+				
 				#echo "$execmd"
 			fi
 			cat /tmp/DoneFolder | while read DoneFolders

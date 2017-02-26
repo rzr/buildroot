@@ -44,3 +44,7 @@
 2009D = Enheten kopplades från Wi-Fi-hotspoten och därför är Internetanslutningen inte längre tillgänglig.
 2010  = Synkronisering av SD-kort stoppades
 2010D = Enheten kunde inte synkronisera innehåll från SD-kortet. Enhetens hårddisk är full.
+2011  = Minskad batterikapacitet
+2011D = För att maximera det laddningsbara batteriets livslängd har batterikapaciteten automatiskt minskats till 80 % på grund av en lång inaktiv period och kontinuerlig laddning. Du återupptar laddningen genom att koppla ur och återansluta enheten till strömkällan.
+2012  = Överstigen enhetstemperatur
+2012D = Enhetstemperaturen är över den angivna maxtemperaturen. Flytta enheten till en svalare plats. Batterikapaciteten har automatiskt minskats till 80 % för att maximera det laddningsbara batteriets livslängd.

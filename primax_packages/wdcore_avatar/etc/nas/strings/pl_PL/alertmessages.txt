@@ -44,3 +44,7 @@
 2009D = Połączenie między urządzeniem a punktem dostępowym Wi-Fi zostało zerwane i dlatego nie jest już dostępne połączenie z Internetem.
 2010  = Synchronizacja karty SD zatrzymana
 2010D = Urządzenie nie mogło zsynchronizować zawartości z karty SD. Miejsce na dysku twardym urządzenia jest całkowicie zajęte.
+2011  = Pojemność baterii została obniżona
+2011D = W celu wydłużenia żywotności baterii jej pojemność została automatycznie obniżona do 80%, ze względu na długi okres, w którym jest ona nieużywana i nieustannie ładowana. Aby wznowić ładowanie, odłącz urządzenie od źródła zasilania i podłącz je ponownie.
+2012  = Zbyt wysoka temperatura urządzenia
+2012D = Temperatura urządzenia przekracza podaną wartość maksymalną. Przenieś urządzenie w chłodniejsze miejsce. Pojemność baterii została automatycznie obniżona do 80% w celu wydłużenia jej żywotności.

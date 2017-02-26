@@ -18,6 +18,9 @@ elif [ "$STR" == "1" ]; then
 elif [ "$STR" == "2" ]; then
     echo 2;
     echo 2 > /tmp/HDDCapacity
+elif [ "$STR" == "3" ]; then
+    echo 2;
+    echo 3 > /tmp/HDDCapacity    
 else
     echo error:Cannot find capacity!;
     echo "error:Cannot find capacity!" > /tmp/HDDCapacity

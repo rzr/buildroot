@@ -44,3 +44,7 @@
 2009D = De verbinding tussen het apparaat en de Wi-Fi-hotspot is verbroken. Er is geen internetverbinding meer beschikbaar.
 2010  = Synchroniseren van SD-kaart gestopt
 2010D = Het apparaat kon de inhoud van de SD-kaart niet synchroniseren. De opslagruimte op de harde schijf van het apparaat is vol.
+2011  = Batterijcapaciteit verlaagd
+2011D = Om te helpen de levensduur van de oplaadbare batterij te maximaliseren is de batterijcapaciteit automatisch teruggebracht naar 80% vanwege de lange periode van inactiviteit en voortdurend laden. Ontkoppel het apparaat van de netstroomvoorziening en sluit deze opnieuw aan om het laden te hervatten.
+2012  = Apparaattemperatuur te hoog
+2012D = De temperatuur van het apparaat ligt boven de opgegeven maximumtemperatuur. Verplaats het apparaat naar een koudere locatie. De batterijcapaciteit is automatisch teruggebracht naar 80% om te helpen de levensduur van de oplaadbare batterij te maximaliseren.

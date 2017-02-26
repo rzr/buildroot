@@ -157,6 +157,9 @@ fi
 if [ -f /CacheVolume/.twonkymedia/twonky-locations-70.db ]; then
 	rm -f /CacheVolume/.twonkymedia/twonky-locations-70.db
 fi
+if [ -f /CacheVolume/.wd-alert/wd-alert-desc.db ]; then
+    rm -f /CacheVolume/.wd-alert/wd-alert-desc.db
+fi
 if [ -d /DataVolume/upload ]; then
 	mv /DataVolume/upload /DataVolume/Upload
 fi

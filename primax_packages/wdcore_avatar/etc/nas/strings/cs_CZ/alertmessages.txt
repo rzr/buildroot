@@ -44,3 +44,7 @@
 2009D = Zařízení bylo odpojeno od sítě Wi-Fi Hotspot, proto již není k dispozici připojení k internetu.
 2010  = Synchronizace karty SD zastavena
 2010D = Zařízení se nezdařilo synchronizovat obsah z karty SD. Kapacita úložiště pevného disku zařízení je zaplněna.
+2011  = Snížená kapacita baterie
+2011D = Z důvodu prodloužení životnosti dobíjecí baterie se kapacita baterie kvůli dlouhému intervalu nečinnosti a nepřetržitému dobíjení automaticky snížila na 80 %. Chcete-li pokračovat v dobíjení, odpojte zařízení od zdroje napájení a znovu jej k němu připojte.
+2012  = Nadměrná teplota zařízení
+2012D = Teplota zařízení přesahuje zadanou maximální teplotu. Umístěte zařízení na chladnější místo. Z důvodu prodloužení životnosti dobíjecí baterie se kapacita baterie automaticky snížila na 80 %.

@@ -20,7 +20,7 @@
 1005  = Unsupported file system
 1005D = An unsupported file system has been detected on the SD card (vendor: %1, model: %2, serial number: %3, file system: %4, label: %5). For a list of supported file system, please go to http://support.wdc.com
 1006  = Unsupported file system
-1006D = An unsupported file system has been detected on the internal storage. For a list of supported file system, plese go to http://support.wdc.com
+1006D = An unsupported file system has been detected on the internal storage. For a list of supported file system, please go to http://support.wdc.com
 1007  = High system temperature
 1007D = Your device is currently overheated. Please ensure that your device has adequate ventilation.
 
@@ -44,3 +44,7 @@
 2009D = The device was disconnected from the Wi-Fi hotspot, therefore the Internet connection is no longer available.
 2010  = SD Card Sync Stopped
 2010D = The device was not able to sync content from the SD card. The device's hard disk storage space is full.
+2011  = Battery capacity lowered
+2011D = To help maximizing the life of the rechargeable battery, the battery capacity was automatically lowered to 80% due to long period of inactivity and continuous charging. To resume charging, disconnect and reconnect the device to the power source.
+2012  = Device over temperature
+2012D = The device temperature is above the specified maximum temperature. Please move the device to a cooler location. The battery capacity was automatically limited to 80% to help maximize the life of the rechargeable battery.
