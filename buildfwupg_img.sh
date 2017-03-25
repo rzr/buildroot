@@ -1,4 +1,8 @@
 #!/bin/sh
+linux=linux-custom
+linux=$(sed  -n  -e 's|/|_|g' -e 's|BR2_LINUX_KERNEL_CUSTOM_GIT_VERSION=\"\(.*\)\"|\1|gp' < .config)
+linux=linux-$linux
+
 make
 rm -Rf output/build/busybox-1.21.0/
 sleep 3
@@ -8,7 +12,7 @@ mkdir -p outputFWupg
 cp -a fwconfigs/FWupg/FWupg.config outputFWupg/.config
 make O=./outputFWupg
 sleep 2
-cp -a outputFWupg/build/linux-custom/arch/arm/configs/am335x_fwupdate_defconfig outputFWupg/build/linux-custom/.config
+cp -a outputFWupg/build/${linux}/arch/arm/configs/am335x_fwupdate_defconfig outputFWupg/build/${linux}/.config
 sleep 2
 cp -af primax_packages/bootloader/MLO outputFWupg/target/media/sda1/update/MLO
 cp -af primax_packages/bootloader/u-boot.img outputFWupg/target/media/sda1/update/u-boot.img

@@ -219,8 +219,9 @@ build_()
         cp -av ./fwupg_images/version output/target/etc/
     fi
 
-    mkdir -p    outputFWupg/build
-    ln -fs  linux-am33x_devel outputFWupg/build/linux-custom
+    mkdir -p outputFWupg/build
+    dst="outputFWupg/build/linux-custom"
+#   [ -e "$dst" ] ||  ln -fs  ../linux-am33x_devel $dst
     sh -x -e ./buildfwupg_img.sh
 }
 
